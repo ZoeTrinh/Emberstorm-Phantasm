@@ -1,45 +1,33 @@
-import { useState } from 'react'
 import '@google/model-viewer'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
+import Navbar from './components/Navbar'
+import Login from './pages/Login'
+import Register from './pages/Register'
 
-function App() {
-  const [count, setCount] = useState(0)
-
+function MainApp() {
   return (
     <>
-       {/* NAVBAR */}
-      <nav className="navbar">
-        <div className="nav-logo">Product name</div>
-        <ul className="nav-links">
-          <li><a href="#">Info</a></li>
-          <li><a href="#">Satellites selector</a></li>
-          <li><a href="#">Drag model</a></li>
-          <li><a href="#">Contact</a></li>
-        </ul>
-      </nav>
+      <Navbar />
 
-      {/* DASHBOARD */}
       <section id="satellites" className="section grid">
         <div className="glass card">
           <h2>Dashboard</h2>
           <p>Satellite analytics coming soon...</p>
         </div>
-
         <div className="glass card">
           <h2>Drag Simulation</h2>
           <p>Visualise atmospheric drag effects</p>
         </div>
-
         <div className="glass card">
           <h2>Live Data</h2>
           <p>Real-time solar weather</p>
         </div>
       </section>
 
-      {/* MODEL VIEWER */}
       <section id="model" className="section">
         <div className="glass card">
           <h2>Solar Model</h2>
@@ -47,40 +35,32 @@ function App() {
             src="/Sun.glb"
             camera-controls
             auto-rotate
-            style={{ width: "100%", height: "400px" }}
+            style={{ width: '100%', height: '400px' }}
           />
         </div>
       </section>
 
       <section id="center">
-
         <section className="dashboard">
           <h1>Dashboard</h1>
         </section>
-
         <div className="hero">
           <img src={heroImg} className="base" width="170" height="179" alt="" />
           <img src={reactLogo} className="framework" alt="React logo" />
           <img src={viteLogo} className="vite" alt="Vite logo" />
         </div>
-
         <div>
           <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-            testtttt
-          </p>
+          <p>Edit <code>src/App.jsx</code> and save to test <code>HMR</code> testtttt</p>
         </div>
-
         <div className="galaxy-button">
-          <button class="space-button">
-            <span class="backdrop"></span>
-            <span class="galaxy"></span>
-            <label class="text">Space</label>
+          <button className="space-button">
+            <span className="backdrop"></span>
+            <span className="galaxy"></span>
+            <label className="text">Space</label>
           </button>
-          <div class="bodydrop"></div>
-        </div>  
-
+          <div className="bodydrop"></div>
+        </div>
       </section>
 
       <div className="ticks"></div>
@@ -88,7 +68,7 @@ function App() {
       <model-viewer
         src="/SpaceXStarlink.glb"
         camera-controls
-        style={{ width: "100%", height: "500px" }}
+        style={{ width: '100%', height: '500px' }}
       />
 
       <section id="next-steps">
@@ -122,11 +102,7 @@ function App() {
           <ul>
             <li>
               <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
+                <svg className="button-icon" role="presentation" aria-hidden="true">
                   <use href="/icons.svg#github-icon"></use>
                 </svg>
                 GitHub
@@ -134,11 +110,7 @@ function App() {
             </li>
             <li>
               <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
+                <svg className="button-icon" role="presentation" aria-hidden="true">
                   <use href="/icons.svg#discord-icon"></use>
                 </svg>
                 Discord
@@ -146,11 +118,7 @@ function App() {
             </li>
             <li>
               <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
+                <svg className="button-icon" role="presentation" aria-hidden="true">
                   <use href="/icons.svg#x-icon"></use>
                 </svg>
                 X.com
@@ -158,11 +126,7 @@ function App() {
             </li>
             <li>
               <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
+                <svg className="button-icon" role="presentation" aria-hidden="true">
                   <use href="/icons.svg#bluesky-icon"></use>
                 </svg>
                 Bluesky
@@ -175,15 +139,25 @@ function App() {
       <div className="ticks"></div>
       <section id="spacer"></section>
 
-      {/* FOOTER */}
       <div>
         <footer id="contact" className="footer glass">
           <h3>By the Emberstorm Phantasm</h3>
           <p>Built with React + Vite</p>
         </footer>
       </div>
-
     </>
+  )
+}
+
+function App() {
+  const user = JSON.parse(localStorage.getItem('user') || 'null')
+
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/*" element={user ? <MainApp /> : <Navigate to="/login" />} />
+    </Routes>
   )
 }
 
