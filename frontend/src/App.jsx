@@ -10,6 +10,8 @@ function App() {
 
   return (
     <>
+      {/*shooting star*/}
+
        {/* NAVBAR */}
       <nav className="navbar">
         <div className="nav-logo">Product name</div>
@@ -22,15 +24,15 @@ function App() {
       </nav>
 
       {/* DASHBOARD */}
-      <section id="satellites" className="section grid">
+      <section id="Dashboard" className="section grid">
         <div className="glass card">
-          <h2>Dashboard</h2>
-          <p>Satellite analytics coming soon...</p>
+          <h2>Temperature</h2>
+          <p>17C</p>
         </div>
 
         <div className="glass card">
-          <h2>Drag Simulation</h2>
-          <p>Visualise atmospheric drag effects</p>
+          <h2>Humidity</h2>
+          <p>wenfoiw</p>
         </div>
 
         <div className="glass card">
@@ -62,6 +64,7 @@ function App() {
           <img src={heroImg} className="base" width="170" height="179" alt="" />
           <img src={reactLogo} className="framework" alt="React logo" />
           <img src={viteLogo} className="vite" alt="Vite logo" />
+          <h2>Weather Panel</h2>
         </div>
 
         <div>
