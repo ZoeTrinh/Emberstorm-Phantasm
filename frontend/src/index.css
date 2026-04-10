@@ -106,5 +106,9 @@ code {
   font-size: 15px;
   line-height: 135%;
   padding: 4px 8px;
-  background: var(--code-bg);
+  /* background: var(--code-bg); */
+
+  background: #1f2028;
+  color: #f3f4f6;
+  border: 1px solid #2e303a;
 }
