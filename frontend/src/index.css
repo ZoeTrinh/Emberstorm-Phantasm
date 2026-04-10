@@ -1,6 +1,6 @@
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
+  --text: white;
+  --text-h: white;
   --border: #e5e4e7;
   --code-bg: #f4f3ec;
   --accent: #aa3bff;
@@ -48,7 +48,7 @@
     filter: invert(1) brightness(2);
   }
 }
-
+g
 body {
   margin: 0;
 }
