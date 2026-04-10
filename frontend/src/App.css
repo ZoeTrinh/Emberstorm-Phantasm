@@ -1,23 +1,4 @@
-.counter {
-  font-size: 16px;
-  display: block;
-  padding: 5px 10px;
-  border-radius: 5px;
-  color: var(--accent);
-  background: var(--accent-bg);
-  border: 2px solid transparent;
-  transition: border-color 0.3s;
-  margin-bottom: 24px;
-  margin: 0 auto 24px auto;
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-  &:focus-visible {
-    outline: 2px solid var(--accent);
-    outline-offset: 2px;
-  }
-}
 .glass {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(15px);
@@ -252,7 +233,7 @@
 .text {
   translate: 2% -6%;
   letter-spacing: 0.01ch;
-  color: hsl(0 0% calc(60% + (var(--active) * 26%)));
+  /* color: hsl(0 0% calc(60% + (var(--active) * 26%))); */
   z-index: 999;
   padding: 0 34px;
   font-weight: 600;

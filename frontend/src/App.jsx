@@ -71,12 +71,6 @@ function App() {
             testtttt
           </p>
         </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
 
         <div className="galaxy-button">
           <button class="space-button">
