@@ -3,6 +3,7 @@ import '@google/model-viewer'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
+import WeatherTracker from './components/WeatherTracker.jsx'
 import './App.css'
 
 function App() {
@@ -10,6 +11,7 @@ function App() {
 
   return (
     <>
+    <div> <WeatherTracker /></div>
        {/* NAVBAR */}
       <nav className="navbar">
         <div className="nav-logo">Product name</div>
