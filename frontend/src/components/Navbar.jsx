@@ -11,7 +11,7 @@ export default function Navbar() {
 
   return (
     <nav className="navbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-      <div className="nav-logo">Product name</div>
+      <div className="nav-logo">CelestSky</div>
       <ul className="nav-links" style={{ display: 'flex', listStyle: 'none', gap: 24, margin: 0 }}>
         <li><a href="#">Info</a></li>
         <li><a href="#">Satellites selector</a></li>

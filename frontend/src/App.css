@@ -320,17 +320,20 @@
 .space-button {
   --active: 0;
 
+  /* main colors */
+  --hue: 220; /* deep blue */
+  
   --bg: radial-gradient(
         120% 120% at 126% 126%,
-        hsl(0 calc(var(--active) * 97%) 98% / calc(var(--active) * 0.9)) 40%,
+        hsl(var(--hue) 60% 85% / calc(var(--active) * 0.6)) 40%,
         transparent 50%
       ),
       radial-gradient(
         120% 120% at 120% 120%,
-        hsl(0 calc(var(--active) * 97%) 70% / calc(var(--active) * 1)) 30%,
+        hsl(var(--hue) 70% 50% / calc(var(--active) * 0.8)) 30%,
         transparent 70%
       ),
-      hsl(0 calc(var(--active) * 100%) calc(12% - (var(--active) * 8%)));
+      hsl(var(--hue) 40% calc(12% - (var(--active) * 6%)));
 
   background: var(--bg);
   font-size: 1.4rem;
@@ -346,7 +349,7 @@
 
   box-shadow:
     0 0 calc(var(--active) * 6em) calc(var(--active) * 3em)
-      hsla(12, 97%, 61%, 0.3);
+      hsla(240, 97%, 61%, 0.3);
 
   transition: 0.25s;
 }

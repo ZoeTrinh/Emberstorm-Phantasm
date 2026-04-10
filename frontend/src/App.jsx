@@ -16,17 +16,6 @@ function MainApp() {
       {/*Star Background*/}
       <StarBackground />
        <Navbar />
-       {/* NAVBAR */}
-      <nav className="navbar">
-        <div className="nav-logo">CelesteSky</div>
-        <ul className="nav-links">
-          <li><a href="#">Info</a></li>
-          <li><a href="#">Satellites selector</a></li>
-          <li><a href="#">Drag model</a></li>
-          <li><a href="#">Contact</a></li>
-        </ul>
-      </nav>
-
       {/*Title Panel*/}
         <div className="titlePanel">
           <h1>Should you look up the sky today?</h1>
@@ -45,6 +34,10 @@ function MainApp() {
 
       {/* DASHBOARD */}
       <section id="dashboard" className="section grid">
+        <div className="glass card">
+          <h2>Dashboard</h2>
+          <WeatherTracker />
+        </div>
 
         <div className="glass card">
           <h2>Live Data</h2>
