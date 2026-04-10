@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
+import WeatherTracker from './components/WeatherTracker.jsx'
 import './App.css'
 import Navbar from './components/Navbar'
 import Login from './pages/Login'
@@ -16,7 +17,7 @@ function MainApp() {
       <section id="satellites" className="section grid">
         <div className="glass card">
           <h2>Dashboard</h2>
-          <p>Satellite analytics coming soon...</p>
+          <div> <WeatherTracker /></div>
         </div>
         <div className="glass card">
           <h2>Drag Simulation</h2>
