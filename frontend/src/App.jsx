@@ -3,6 +3,7 @@ import '@google/model-viewer'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
+import StarBackground from '../src/components/StarBackground';
 import './App.css'
 
 function App() {
@@ -10,9 +11,12 @@ function App() {
 
   return (
     <>
+      {/*Star Background*/}
+      <StarBackground />
+
        {/* NAVBAR */}
       <nav className="navbar">
-        <div className="nav-logo">Product name</div>
+        <div className="nav-logo">CelesteSky</div>
         <ul className="nav-links">
           <li><a href="#">Info</a></li>
           <li><a href="#">Satellites selector</a></li>
@@ -21,17 +25,24 @@ function App() {
         </ul>
       </nav>
 
-      {/* DASHBOARD */}
-      <section id="satellites" className="section grid">
-        <div className="glass card">
-          <h2>Dashboard</h2>
-          <p>Satellite analytics coming soon...</p>
+      {/*Title Panel*/}
+        <div className="titlePanel">
+          <h1>Should you look up the sky today?</h1>
+          <p>Celestial phenomena calendar using space weather</p>
+
+          <div className="galaxy-button">
+            <button class="space-button">
+              <span class="backdrop"></span>
+              <span class="galaxy"></span>
+              <label class="text">View your sky</label>
+            </button>
+          <div class="bodydrop"></div>
+
+        </div>  
         </div>
 
-        <div className="glass card">
-          <h2>Drag Simulation</h2>
-          <p>Visualise atmospheric drag effects</p>
-        </div>
+      {/* DASHBOARD */}
+      <section id="dashboard" className="section grid">
 
         <div className="glass card">
           <h2>Live Data</h2>
@@ -71,15 +82,6 @@ function App() {
             testtttt
           </p>
         </div>
-
-        <div className="galaxy-button">
-          <button class="space-button">
-            <span class="backdrop"></span>
-            <span class="galaxy"></span>
-            <label class="text">Space</label>
-          </button>
-          <div class="bodydrop"></div>
-        </div>  
 
       </section>
 
