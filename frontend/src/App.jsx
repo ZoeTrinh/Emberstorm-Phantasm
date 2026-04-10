@@ -1,45 +1,84 @@
-import { useState } from 'react'
-import '@google/model-viewer'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useEffect, useState } from "react";
+import "@google/model-viewer";
+import heroImg from "./assets/hero.png";
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [weather, setWeather] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function fetchWeather() {
+      try {
+        const response = await fetch(
+          "http://127.0.0.1:8000/api/weather?lat=-37.8136&lon=144.9631"
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch weather data");
+        }
+
+        const data = await response.json();
+        console.log("Weather data:", data);
+        setWeather(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchWeather();
+  }, []);
 
   return (
     <>
-       {/* NAVBAR */}
       <nav className="navbar">
-        <div className="nav-logo">Product name</div>
+        <div className="nav-logo">Emberstorm Phantasm</div>
         <ul className="nav-links">
-          <li><a href="#">Info</a></li>
-          <li><a href="#">Satellites selector</a></li>
-          <li><a href="#">Drag model</a></li>
-          <li><a href="#">Contact</a></li>
+          <li><a href="#dashboard">Dashboard</a></li>
+          <li><a href="#satellites">Satellites</a></li>
+          <li><a href="#model">Model</a></li>
+          <li><a href="#contact">Contact</a></li>
         </ul>
       </nav>
 
-      {/* DASHBOARD */}
-      <section id="satellites" className="section grid">
+      <section id="dashboard" className="section grid">
         <div className="glass card">
-          <h2>Dashboard</h2>
-          <p>Satellite analytics coming soon...</p>
+          <h2>Current Weather</h2>
+          {loading && <p>Loading weather...</p>}
+          {error && <p>Error: {error}</p>}
+          {weather && (
+            <>
+              <p>Temperature: {weather.current_weather?.temperature}°C</p>
+              <p>Wind Speed: {weather.current_weather?.windspeed} km/h</p>
+              <p>Weather Code: {weather.current_weather?.weathercode}</p>
+            </>
+          )}
         </div>
 
         <div className="glass card">
-          <h2>Drag Simulation</h2>
-          <p>Visualise atmospheric drag effects</p>
+          <h2>Forecast Summary</h2>
+          {weather?.daily ? (
+            <>
+              <p>Max Temp Today: {weather.daily.temperature_2m_max?.[0]}°C</p>
+              <p>Min Temp Today: {weather.daily.temperature_2m_min?.[0]}°C</p>
+              <p>
+                Rain Chance: {weather.daily.precipitation_probability_max?.[0]}%
+              </p>
+            </>
+          ) : (
+            <p>Forecast data coming soon...</p>
+          )}
         </div>
 
         <div className="glass card">
           <h2>Live Data</h2>
-          <p>Real-time solar weather</p>
+          <p>Real-time solar/weather monitoring</p>
         </div>
       </section>
 
-      {/* MODEL VIEWER */}
       <section id="model" className="section">
         <div className="glass card">
           <h2>Solar Model</h2>
@@ -53,37 +92,23 @@ function App() {
       </section>
 
       <section id="center">
-
         <section className="dashboard">
           <h1>Dashboard</h1>
         </section>
 
         <div className="hero">
           <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-            testtttt
-          </p>
         </div>
 
         <div className="galaxy-button">
-          <button class="space-button">
-            <span class="backdrop"></span>
-            <span class="galaxy"></span>
-            <label class="text">Space</label>
+          <button className="space-button">
+            <span className="backdrop"></span>
+            <span className="galaxy"></span>
+            <label className="text">Space</label>
           </button>
-          <div class="bodydrop"></div>
-        </div>  
-
+          <div className="bodydrop"></div>
+        </div>
       </section>
-
-      <div className="ticks"></div>
 
       <model-viewer
         src="/SpaceXStarlink.glb"
@@ -91,100 +116,12 @@ function App() {
         style={{ width: "100%", height: "500px" }}
       />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-
-      {/* FOOTER */}
-      <div>
-        <footer id="contact" className="footer glass">
-          <h3>By the Emberstorm Phantasm</h3>
-          <p>Built with React + Vite</p>
-        </footer>
-      </div>
-
+      <footer id="contact" className="footer glass">
+        <h3>By Emberstorm Phantasm</h3>
+        <p>Built with React + Vite + FastAPI</p>
+      </footer>
     </>
-  )
+  );
 }
 
-export default App
+export default App;

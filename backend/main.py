@@ -2,15 +2,26 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from routes.weather import router as weather_router
+from routes.sunrise import router as sunrise_router
+
 app = FastAPI()
 
 # CRITICAL: This allows your React app to talk to this Python server
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"], 
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(weather_router, prefix="/api")
+app.include_router(sunrise_router, prefix="/api")
+
+@app.get("/")
+def root():
+    return {"message": "Backend is running"}
 
 class ManeuverRequest(BaseModel):
     current_alt: float
