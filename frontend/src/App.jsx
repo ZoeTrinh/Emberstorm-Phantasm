@@ -3,7 +3,8 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
-import WeatherTracker from './components/WeatherTracker.jsx'
+import WeatherTracker from './components/WeatherTracker.jsx';
+import StarBackground from '../src/components/StarBackground';
 import './App.css'
 import Navbar from './components/Navbar'
 import Login from './pages/Login'
@@ -12,17 +13,39 @@ import Register from './pages/Register'
 function MainApp() {
   return (
     <>
-      <Navbar />
+      {/*Star Background*/}
+      <StarBackground />
+       <Navbar />
+       {/* NAVBAR */}
+      <nav className="navbar">
+        <div className="nav-logo">CelesteSky</div>
+        <ul className="nav-links">
+          <li><a href="#">Info</a></li>
+          <li><a href="#">Satellites selector</a></li>
+          <li><a href="#">Drag model</a></li>
+          <li><a href="#">Contact</a></li>
+        </ul>
+      </nav>
 
-      <section id="satellites" className="section grid">
-        <div className="glass card">
-          <h2>Dashboard</h2>
-          <div> <WeatherTracker /></div>
+      {/*Title Panel*/}
+        <div className="titlePanel">
+          <h1>Should you look up the sky today?</h1>
+          <p>Celestial phenomena calendar using space weather</p>
+
+          <div className="galaxy-button">
+            <button class="space-button">
+              <span class="backdrop"></span>
+              <span class="galaxy"></span>
+              <label class="text">View your sky</label>
+            </button>
+          <div class="bodydrop"></div>
+
+        </div>  
         </div>
-        <div className="glass card">
-          <h2>Drag Simulation</h2>
-          <p>Visualise atmospheric drag effects</p>
-        </div>
+
+      {/* DASHBOARD */}
+      <section id="dashboard" className="section grid">
+
         <div className="glass card">
           <h2>Live Data</h2>
           <p>Real-time solar weather</p>
@@ -54,14 +77,7 @@ function MainApp() {
           <h1>Get started</h1>
           <p>Edit <code>src/App.jsx</code> and save to test <code>HMR</code> testtttt</p>
         </div>
-        <div className="galaxy-button">
-          <button className="space-button">
-            <span className="backdrop"></span>
-            <span className="galaxy"></span>
-            <label className="text">Space</label>
-          </button>
-          <div className="bodydrop"></div>
-        </div>
+
       </section>
 
       <div className="ticks"></div>
