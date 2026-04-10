@@ -11,7 +11,6 @@ function App() {
 
   return (
     <>
-    <div> <WeatherTracker /></div>
        {/* NAVBAR */}
       <nav className="navbar">
         <div className="nav-logo">Product name</div>
@@ -27,7 +26,7 @@ function App() {
       <section id="satellites" className="section grid">
         <div className="glass card">
           <h2>Dashboard</h2>
-          <p>Satellite analytics coming soon...</p>
+          <div> <WeatherTracker /></div>
         </div>
 
         <div className="glass card">
