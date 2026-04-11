@@ -110,15 +110,15 @@ function pickHeroEvent(data) {
     isDay:          nextEclipse.isSolar,
   };
 
-  const nextConj = data.conjunctions.find((c) => c.daysAway >= 0 && c.daysAway <= 14);
-  if (nextConj) return {
+    const nextConj = data.conjunctions.find((c) => c.daysAway >= 0 && c.daysAway <= 14);
+    if (nextConj) return {
     title:          nextConj.name,
     subtitle:       nextConj.daysAway === 0 ? "Happening tonight!" : `In ${nextConj.daysAway} days`,
     funFact:        nextConj.tip,
-    searchQuery:    nextConj.objects + " conjunction night sky",
+    searchQuery:    `${nextConj.objects} planet conjunction astronomy`,  // ← was just "conjunction night sky"
     needsTelescope: nextConj.needsTelescope,
     isDay:          false,
-  };
+    };
 
   if (data.moon.illumination >= 95) return {
     title:          "Full Moon",
@@ -196,8 +196,14 @@ async function fetchCloseApproaches() {
 
 async function fetchNasaImage(query) {
   try {
+    const SATURN_FALLBACK = {
+      url:    "https://assets.science.nasa.gov/dynamicimage/assets/science/psd/solar/2023/09/p/i/a/1/PIA18335.jpg",
+      title:  "Saturn",
+      credit: "NASA/JPL-Caltech",
+    };
+
     const res  = await fetch(`https://images-api.nasa.gov/search?q=${encodeURIComponent(query)}&media_type=image&page_size=8`);
-    if (!res.ok) return null;
+    if (!res.ok) return SATURN_FALLBACK;
     const data = await res.json();
     for (const item of (data.collection?.items ?? [])) {
       const link = item.links?.find((l) => l.rel === "preview");
@@ -207,8 +213,14 @@ async function fetchNasaImage(query) {
         credit: item.data?.[0]?.center ?? "NASA",
       };
     }
-    return null;
-  } catch { return null; }
+    return SATURN_FALLBACK;
+  } catch { 
+    return {
+      url:    "https://assets.science.nasa.gov/dynamicimage/assets/science/psd/solar/2023/09/p/i/a/1/PIA18335.jpg",
+      title:  "Saturn",
+      credit: "NASA/JPL-Caltech",
+    };
+  }
 }
 
 /* ─── Sub-components ─────────────────────────────────────────── */
@@ -284,7 +296,11 @@ function HeroPanel({ hero, image, cloudWarning }) {
 
   return (
     <div className="cw-hero">
-      <div className="cw-hero-bg" style={image ? { backgroundImage: `url(${image.url})` } : {}} />
+      <div className="cw-hero-bg" style={image ? { 
+        backgroundImage:    `url(${image.url})`,
+        backgroundSize:     "200%",
+        backgroundPosition: "30% 20%",
+      } : {}} />
       <div className="cw-hero-overlay" />
 
       <div className="cw-hero-content">
