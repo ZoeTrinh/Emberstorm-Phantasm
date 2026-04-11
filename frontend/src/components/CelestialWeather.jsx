@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { getUserLocation } from "../utils/Gps";
 import "./CelestialWeather.css";
 import { calculateConjunctions } from '../utils/ConjunctionCalculator';
@@ -290,7 +290,7 @@ function ViewingBanner({ warning }) {
 }
 
 /* ─── Hero panel ─────────────────────────────────────────────── */
-function HeroPanel({ hero, image, cloudWarning }) {
+function HeroPanel({ hero, image, cloudWarning, closestEvent, timeLeft }) {
   if (!hero) return null;
   const blocked = cloudWarning?.level === "blocked";
 
@@ -309,6 +309,38 @@ function HeroPanel({ hero, image, cloudWarning }) {
         </div>
         <h2 className="cw-hero-title">{hero.title}</h2>
         <div className="cw-hero-subtitle">{hero.subtitle}</div>
+
+                {closestEvent && timeLeft && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(168,212,245,0.45)", marginBottom: 8 }}>
+              Live countdown
+            </div>
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[
+                ["Days", timeLeft.days],
+                ["Hours", timeLeft.hours],
+                ["Min", timeLeft.minutes],
+                ["Sec", timeLeft.seconds],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  style={{
+                    minWidth: 70,
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(74,111,165,0.2)",
+                    textAlign: "center",
+                  }}
+                >
+                  <div style={{ fontSize: 24, fontWeight: 700, color: "#ffd54f" }}>{value}</div>
+                  <div style={{ fontSize: 11, color: "rgba(168,212,245,0.5)" }}>{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {hero.needsTelescope && (
           <div className="cw-telescope-badge">🔭 Telescope or binoculars recommended</div>
@@ -335,6 +367,87 @@ function HeroPanel({ hero, image, cloudWarning }) {
   );
 }
 
+// Convert the nearest event into an exact Date object
+function getClosestPhenomenonDate(data) {
+  if (!data) return null;
+
+  const now = new Date();
+  const candidates = [];
+
+  // Meteor showers
+  for (const s of data.showers || []) {
+    let year = now.getFullYear();
+    let eventDate = new Date(year, s.peak.m - 1, s.peak.d, 22, 0, 0); // 10pm local time
+
+    if (eventDate < now) {
+      eventDate = new Date(year + 1, s.peak.m - 1, s.peak.d, 22, 0, 0);
+    }
+
+    candidates.push({
+      type: "Meteor Shower",
+      title: s.name,
+      date: eventDate,
+    });
+  }
+
+  // Eclipses
+  for (const e of data.eclipses || []) {
+    const eventDate = new Date(`${e.date}T12:00:00`); // midday placeholder
+    if (eventDate > now) {
+      candidates.push({
+        type: "Eclipse",
+        title: `${e.type} Eclipse`,
+        date: eventDate,
+      });
+    }
+  }
+
+  // Conjunctions
+  for (const c of data.conjunctions || []) {
+    if (c.daysAway >= 0) {
+      const eventDate = new Date();
+      eventDate.setDate(eventDate.getDate() + c.daysAway);
+      eventDate.setHours(21, 0, 0, 0); // 9pm local time
+
+      candidates.push({
+        type: "Conjunction",
+        title: c.objects || c.name,
+        date: eventDate,
+      });
+    }
+  }
+
+  candidates.sort((a, b) => a.date - b.date);
+  return candidates[0] || null;
+}
+
+// Break remaining time into parts for display
+function getTimeLeft(targetDate) {
+  if (!targetDate) return null;
+
+  const diff = targetDate - new Date();
+
+  if (diff <= 0) {
+    return {
+      expired: true,
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+    };
+  }
+
+  const totalSeconds = Math.floor(diff / 1000);
+
+  return {
+    expired: false,
+    days: Math.floor(totalSeconds / 86400),
+    hours: Math.floor((totalSeconds % 86400) / 3600),
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: totalSeconds % 60,
+  };
+}
+
 /* ─── Main ───────────────────────────────────────────────────── */
 export default function CelestialWeather({ hourlyWeather = null }) {
   const [data, setData]           = useState(null);
@@ -344,7 +457,25 @@ export default function CelestialWeather({ hourlyWeather = null }) {
   const [error, setError]         = useState(null);
   const [locName, setLocName]     = useState("");
 
+  const [closestEvent, setClosestEvent] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(null);
+
   const cloudWarning = getViewingWarning(hourlyWeather);
+
+    useEffect(() => {
+    if (!closestEvent) return;
+
+    // Set the countdown immediately
+    setTimeLeft(getTimeLeft(closestEvent.date));
+
+    // Update every second
+    const intervalId = setInterval(() => {
+      setTimeLeft(getTimeLeft(closestEvent.date));
+    }, 1000);
+
+    // Clean up interval when event changes or component unmounts
+    return () => clearInterval(intervalId);
+  }, [closestEvent]);
 
   const load = useCallback(async (lat, lng, label = "") => {
     setLoading(true);
@@ -379,6 +510,10 @@ export default function CelestialWeather({ hourlyWeather = null }) {
 
       setData(assembled);
       setLocName(label);
+
+      // Find the earliest upcoming phenomenon for the live countdown
+      const nearest = getClosestPhenomenonDate(assembled);
+      setClosestEvent(nearest);
 
       const heroEvent = pickHeroEvent(assembled);
       setHero(heroEvent);
@@ -439,7 +574,7 @@ export default function CelestialWeather({ hourlyWeather = null }) {
 
       {data && !loading && (
         <>
-          <HeroPanel hero={hero} image={heroImage} cloudWarning={cloudWarning} />
+          <HeroPanel hero={hero} image={heroImage} cloudWarning={cloudWarning} closestEvent={closestEvent} timeLeft={timeLeft}/>
 
           <div className="cw-grid">
 
