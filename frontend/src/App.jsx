@@ -3,22 +3,26 @@ import { useState, useEffect, useRef } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import WeatherTracker from './components/WeatherTracker.jsx'
 import StarBackground from './components/StarBackground'
+import CelestialOverlay from './components/CelestialOverlay.jsx'
 import './App.css'
-import Aurora from './components/Aurora'
 import Navbar from './components/Navbar'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import CelestialWeather from './components/CelestialWeather'
+import SkyRecommendation from './components/SkyRecommendation'
 
 function MainApp() {
   const [hourlyWeather, setHourlyWeather]   = useState(null)
+  const [heroEvent, setHeroEvent]           = useState(null)
   const [gpsLocation, setGpsLocation]       = useState(null)
   const [locationDenied, setLocationDenied] = useState(false)
   const [loginModal, setLoginModal]         = useState(false)
   const [registerModal, setRegisterModal]   = useState(false)
 
-  const forecastRef  = useRef(null)
-  const celestialRef = useRef(null)
+  const forecastRef       = useRef(null)
+  const celestialRef      = useRef(null)
+  const recommendationRef = useRef(null)
+
   function askLocation() {
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
@@ -44,21 +48,15 @@ function MainApp() {
 
   return (
     <>
-      {/* Layer order (back to front):
-          -1  StarBackground  (fixed, stars)
-           0  CelestialOverlay (fixed, aurora WebGL)
-           1  floatingTitle (fixed, above aurora, pointer-events: none)
-           2  Navbar (sticky)
-           3  titlePanel (background image + button)
-           4+ page sections */}
-
       <StarBackground />
+      <CelestialOverlay />
 
       <Navbar
-        onForecastClick={()  => forecastRef.current?.scrollIntoView({ behavior: 'smooth' })}
-        onCelestialClick={() => celestialRef.current?.scrollIntoView({ behavior: 'smooth' })}
-        onLoginClick={()    => setLoginModal(true)}
-        onRegisterClick={()  => setRegisterModal(true)}
+        onForecastClick={()       => forecastRef.current?.scrollIntoView({ behavior: 'smooth' })}
+        onCelestialClick={()      => celestialRef.current?.scrollIntoView({ behavior: 'smooth' })}
+        onRecommendationClick={()  => recommendationRef.current?.scrollIntoView({ behavior: 'smooth' })}
+        onLoginClick={()          => setLoginModal(true)}
+        onRegisterClick={()        => setRegisterModal(true)}
       />
 
       {loginModal && (
@@ -68,23 +66,9 @@ function MainApp() {
         <Register isModal onClose={() => { setRegisterModal(false); askLocation() }} />
       )}
 
-      {/* titlePanel: background image, aurora, title, ghost spacers, button */}
       <div className="titlePanel">
-        {/* Aurora — absolutely fills panel, behind title */}
-        <Aurora
-          colorStops={['#67e8f9', '#c084fc', '#38bdf8']}
-          amplitude={1.1}
-          blend={0.6}
-          speed={0.4}
-        />
-        {/* Title — absolutely positioned inside panel, scrolls away with it */}
-        <div className="floatingTitle">
-          <h1>Should you look up<br />the sky today?</h1>
-          <p>Celestial phenomena calendar using space weather</p>
-        </div>
-        {/* Invisible placeholders — same text as floatingTitle, push button into correct position */}
-        <h1 className="titlePanel-ghost">Should you look up<br />the sky today?</h1>
-        <p className="titlePanel-ghost">Celestial phenomena calendar using space weather</p>
+        <h1>Should you look up<br />the sky today?</h1>
+        <p>Celestial phenomena calendar using space weather</p>
         <div className="galaxy-button">
           <button className="space-button" onClick={handleViewSkyClick}>
             <span className="backdrop" />
@@ -114,9 +98,22 @@ function MainApp() {
           <CelestialWeather
             hourlyWeather={hourlyWeather}
             autoLocation={gpsLocation}
+            onHeroEvent={setHeroEvent}
           />
         </div>
       </section>
+
+      {/* Recommendation banner — only appears once both data sources are ready */}
+      {(hourlyWeather || heroEvent) && (
+        <section id="recommendation" className="section" ref={recommendationRef}>
+          <div className="glass card section-inner">
+            <SkyRecommendation
+              hourlyWeather={hourlyWeather}
+              heroEvent={heroEvent}
+            />
+          </div>
+        </section>
+      )}
 
       <footer id="contact" className="footer-bar">
         <div className="footer-inner">

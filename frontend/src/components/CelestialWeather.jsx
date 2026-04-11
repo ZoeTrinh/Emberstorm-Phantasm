@@ -415,7 +415,7 @@ function getTimeLeft(targetDate) {
 }
 
 /* ─── Main ───────────────────────────────────────────────────── */
-export default function CelestialWeather({ hourlyWeather = null }) {
+export default function CelestialWeather({ hourlyWeather = null, onHeroEvent }) {
   const [data, setData]           = useState(null);
   const [hero, setHero]           = useState(null);
   const [heroImage, setHeroImage] = useState(null);
@@ -481,6 +481,7 @@ export default function CelestialWeather({ hourlyWeather = null }) {
 
       const heroEvent = pickHeroEvent(assembled);
       setHero(heroEvent);
+      onHeroEvent?.(heroEvent);
       fetchNasaImage(heroEvent.searchQuery).then(setHeroImage);
     } catch (err) {
       setError("Could not load celestial data. " + err.message);
