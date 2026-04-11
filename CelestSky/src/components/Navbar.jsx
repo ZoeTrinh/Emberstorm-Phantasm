@@ -49,6 +49,7 @@ export default function Navbar({ onForecastClick, onCelestialClick, onLoginClick
   )
 }
 
+
 const outlineBtnStyle = {
   padding: '8px 18px',
   background: 'transparent',
