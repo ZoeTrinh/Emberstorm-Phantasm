@@ -1,4 +1,5 @@
 import '@google/model-viewer'
+import { useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
@@ -12,33 +13,38 @@ import Register from './pages/Register'
 import CelestialWeather from "./components/CelestialWeather";
 
 function MainApp() {
+  /* Lifted weather state — WeatherTracker writes it, CelestialWeather reads it */
+  const [hourlyWeather, setHourlyWeather] = useState(null)
+
   return (
     <>
       {/*Star Background*/}
       <StarBackground />
-       <Navbar />
+      <Navbar />
+
       {/*Title Panel*/}
-        <div className="titlePanel">
-          <h1>Should you look up the sky today?</h1>
-          <p>Celestial phenomena calendar using space weather</p>
+      <div className="titlePanel">
+        <h1>Should you look up the sky today?</h1>
+        <p>Celestial phenomena calendar using space weather</p>
 
-          <div className="galaxy-button">
-            <button class="space-button">
-              <span class="backdrop"></span>
-              <span class="galaxy"></span>
-              <label class="text">View your sky</label>
-            </button>
-          <div class="bodydrop"></div>
-
-        </div>  
+        <div className="galaxy-button">
+          <button className="space-button">
+            <span className="backdrop"></span>
+            <span className="galaxy"></span>
+            <label className="text">View your sky</label>
+          </button>
+          <div className="bodydrop"></div>
         </div>
+      </div>
 
       {/* DASHBOARD */}
       <section id="dashboard" className="section grid">
         <div className="glass card">
           <h2>Dashboard</h2>
-          <WeatherTracker />
-          <CelestialWeather />
+          {/* WeatherTracker calls onWeatherLoad when it has data */}
+          <WeatherTracker onWeatherLoad={setHourlyWeather} />
+          {/* CelestialWeather receives hourly cloud data for viewing warnings */}
+          <CelestialWeather hourlyWeather={hourlyWeather} />
         </div>
 
         <div className="glass card">
@@ -72,7 +78,6 @@ function MainApp() {
           <h1>Get started</h1>
           <p>Edit <code>src/App.jsx</code> and save to test <code>HMR</code> testtttt</p>
         </div>
-
       </section>
 
       <div className="ticks"></div>

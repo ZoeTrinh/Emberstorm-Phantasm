@@ -1,26 +1,22 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { getUserLocation } from "../utils/Gps";
 import "./CelestialWeather.css";
 
-/* ─── NASA API key (set VITE_NASA_API_KEY in your .env file) ─── */
 const NASA_KEY = import.meta.env.VITE_NASA_API_KEY || "DEMO_KEY";
 
-/* ─── Astronomy calculation helpers ─── */
+/* ─── Astronomy helpers ─────────────────────────────────────── */
 
-/** Julian Date from JS Date */
 function toJulian(date = new Date()) {
   return date.getTime() / 86400000 + 2440587.5;
 }
 
-/** Moon phase (0–1) and name from Julian date */
 function getMoonPhase(date = new Date()) {
-  const jd = toJulian(date);
+  const jd    = toJulian(date);
   const cycle = 29.53058867;
-  const known = 2451549.5; // known new moon Jan 6 2000
+  const known = 2451549.5;
   const phase = ((jd - known) % cycle) / cycle;
-  const norm = phase < 0 ? phase + 1 : phase;
+  const norm  = phase < 0 ? phase + 1 : phase;
 
-  const pct = Math.round(norm * 100);
   let name, emoji;
   if (norm < 0.03 || norm >= 0.97)      { name = "New Moon";        emoji = "🌑"; }
   else if (norm < 0.22)                  { name = "Waxing Crescent"; emoji = "🌒"; }
@@ -31,198 +27,237 @@ function getMoonPhase(date = new Date()) {
   else if (norm < 0.78)                  { name = "Last Quarter";    emoji = "🌗"; }
   else                                   { name = "Waning Crescent"; emoji = "🌘"; }
 
-  /* Days until next full moon and new moon */
-  const daysToFull = norm < 0.5
-    ? Math.round((0.5 - norm) * cycle)
-    : Math.round((1.5 - norm) * cycle);
-  const daysToNew = norm < 1
-    ? Math.round((1 - norm) * cycle)
-    : 0;
-
-  /* Illumination percentage (approx) */
   const illumination = Math.round(50 * (1 - Math.cos(2 * Math.PI * norm)));
+  const daysToFull   = norm < 0.5 ? Math.round((0.5 - norm) * cycle) : Math.round((1.5 - norm) * cycle);
+  const daysToNew    = Math.round((1 - norm) * cycle);
 
-  return { phase: norm, pct, name, emoji, daysToFull, daysToNew, illumination };
+  return { phase: norm, name, emoji, illumination, daysToFull, daysToNew };
 }
 
-/** Known annual meteor showers */
 const METEOR_SHOWERS = [
-  { name: "Quadrantids",   peak: { m: 1,  d: 3  }, rate: 120, parent: "2003 EH1"          },
-  { name: "Lyrids",        peak: { m: 4,  d: 22 }, rate: 20,  parent: "Comet Thatcher"    },
-  { name: "Eta Aquariids", peak: { m: 5,  d: 6  }, rate: 60,  parent: "Comet Halley"      },
-  { name: "Delta Aquariids",peak:{ m: 7,  d: 30 }, rate: 20,  parent: "Comet Machholz"    },
-  { name: "Perseids",      peak: { m: 8,  d: 12 }, rate: 100, parent: "Comet Swift-Tuttle"},
-  { name: "Orionids",      peak: { m: 10, d: 21 }, rate: 25,  parent: "Comet Halley"      },
-  { name: "Leonids",       peak: { m: 11, d: 17 }, rate: 15,  parent: "Comet Tempel-Tuttle"},
-  { name: "Geminids",      peak: { m: 12, d: 14 }, rate: 150, parent: "3200 Phaethon"     },
-  { name: "Ursids",        peak: { m: 12, d: 22 }, rate: 10,  parent: "Comet Tuttle"      },
+  { name: "Quadrantids",    peak: { m: 1,  d: 3  }, rate: 120, parent: "2003 EH1",            needsTelescope: false },
+  { name: "Lyrids",         peak: { m: 4,  d: 22 }, rate: 20,  parent: "Comet Thatcher",      needsTelescope: false },
+  { name: "Eta Aquariids",  peak: { m: 5,  d: 6  }, rate: 60,  parent: "Comet Halley",        needsTelescope: false },
+  { name: "Delta Aquariids",peak: { m: 7,  d: 30 }, rate: 20,  parent: "Comet Machholz",      needsTelescope: false },
+  { name: "Perseids",       peak: { m: 8,  d: 12 }, rate: 100, parent: "Comet Swift-Tuttle",  needsTelescope: false },
+  { name: "Orionids",       peak: { m: 10, d: 21 }, rate: 25,  parent: "Comet Halley",        needsTelescope: false },
+  { name: "Leonids",        peak: { m: 11, d: 17 }, rate: 15,  parent: "Comet Tempel-Tuttle", needsTelescope: false },
+  { name: "Geminids",       peak: { m: 12, d: 14 }, rate: 150, parent: "3200 Phaethon",       needsTelescope: false },
+  { name: "Ursids",         peak: { m: 12, d: 22 }, rate: 10,  parent: "Comet Tuttle",        needsTelescope: false },
 ];
 
-/** Days between two {m,d} dates (cyclical within year) */
+const CONJUNCTIONS = [
+  { name: "Venus–Jupiter Conjunction",  date: "2025-08-12", objects: "Venus & Jupiter",  needsTelescope: true, tip: "Less than 0.5° apart. Binoculars reveal both discs." },
+  { name: "Mars–Saturn Conjunction",    date: "2025-10-06", objects: "Mars & Saturn",    needsTelescope: true, tip: "Telescope recommended to resolve Saturn's rings alongside Mars." },
+  { name: "Venus–Saturn Conjunction",   date: "2025-11-02", objects: "Venus & Saturn",   needsTelescope: true, tip: "Striking pair low in the west. Small telescope ideal." },
+  { name: "Jupiter–Neptune Conjunction",date: "2026-04-07", objects: "Jupiter & Neptune",needsTelescope: true, tip: "Neptune invisible to naked eye — binoculars or telescope required." },
+];
+
+function daysUntilDate(dateStr) {
+  return Math.round((new Date(dateStr + "T12:00:00") - new Date()) / 86400000);
+}
+
 function daysUntilPeak(peak) {
-  const now  = new Date();
-  const year = now.getFullYear();
-  const peakDate = new Date(year, peak.m - 1, peak.d);
-  if (peakDate < now) peakDate.setFullYear(year + 1);
+  const now      = new Date();
+  const peakDate = new Date(now.getFullYear(), peak.m - 1, peak.d);
+  if (peakDate < now) peakDate.setFullYear(now.getFullYear() + 1);
   return Math.round((peakDate - now) / 86400000);
 }
 
-/** Activity window ±3 days around peak */
 function getShowerActivity(peak) {
   const days = daysUntilPeak(peak);
-  if (days <= 3)  return { label: "Active now",   color: "#4fc3f7", intensity: 1   };
-  if (days <= 7)  return { label: "Coming soon",  color: "#81d4fa", intensity: 0.6 };
-  if (days <= 30) return { label: "This month",   color: "#4a6fa5", intensity: 0.3 };
-  return              { label: `In ${days} days`, color: "#2a3f5f", intensity: 0.1 };
+  if (days <= 3)  return { label: "Active now",  color: "#4fc3f7" };
+  if (days <= 7)  return { label: "Coming soon", color: "#81d4fa" };
+  if (days <= 30) return { label: "This month",  color: "#4a6fa5" };
+  return              { label: `In ${days}d`,    color: "#2a3f5f" };
 }
 
-/** Aurora probability based on latitude */
 function getAuroraProbability(lat) {
-  const absLat = Math.abs(lat);
-  if (absLat >= 65) return { chance: 85, zone: "Auroral oval",    tip: "Look north on clear nights" };
-  if (absLat >= 55) return { chance: 55, zone: "Sub-auroral",     tip: "Visible during strong storms" };
-  if (absLat >= 45) return { chance: 25, zone: "Mid-latitude",    tip: "Only during G3+ geomagnetic storms" };
-  if (absLat >= 35) return { chance: 8,  zone: "Low-latitude",    tip: "Rare — requires extreme G4/G5 event" };
-  return                   { chance: 1,  zone: "Near equatorial", tip: "Extremely rare — major solar event needed" };
+  const a = Math.abs(lat);
+  if (a >= 65) return { chance: 85, zone: "Auroral oval",    tip: "Look north on clear nights" };
+  if (a >= 55) return { chance: 55, zone: "Sub-auroral",     tip: "Visible during strong storms" };
+  if (a >= 45) return { chance: 25, zone: "Mid-latitude",    tip: "Only during G3+ storms" };
+  if (a >= 35) return { chance: 8,  zone: "Low-latitude",    tip: "Requires extreme G4/G5 event" };
+  return             { chance: 1,  zone: "Near equatorial",  tip: "Extremely rare — major solar event needed" };
 }
 
-/* ─── NASA API fetchers ─── */
-
-/** DONKI: geomagnetic storms in the last 30 days */
-async function fetchGeomagneticStorms() {
-  const end   = new Date().toISOString().slice(0, 10);
-  const start = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-  const res = await fetch(
-    `https://api.nasa.gov/DONKI/GST?startDate=${start}&endDate=${end}&api_key=${NASA_KEY}`
-  );
-  if (!res.ok) return [];
-  return res.json();
-}
-
-/** DONKI: solar flares in the last 30 days */
-async function fetchSolarFlares() {
-  const end   = new Date().toISOString().slice(0, 10);
-  const start = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
-  const res = await fetch(
-    `https://api.nasa.gov/DONKI/FLR?startDate=${start}&endDate=${end}&api_key=${NASA_KEY}`
-  );
-  if (!res.ok) return [];
-  return res.json();
-}
-
-/** NASA SSD small-body close approaches (comets & asteroids) */
-async function fetchCloseApproaches() {
-  const res = await fetch(
-    `https://api.nasa.gov/neo/rest/v1/feed/today?detailed=false&api_key=${NASA_KEY}`
-  );
-  if (!res.ok) return [];
-  const data = await res.json();
-  const today = Object.values(data.near_earth_objects)[0] || [];
-  return today
-    .filter((o) => o.is_potentially_hazardous_asteroid === false)
-    .slice(0, 6)
-    .map((o) => ({
-      name:     o.name,
-      diameter: Math.round(o.estimated_diameter.meters.estimated_diameter_max),
-      distance: parseFloat(o.close_approach_data[0]?.miss_distance?.lunar).toFixed(1),
-      velocity: parseFloat(o.close_approach_data[0]?.relative_velocity?.kilometers_per_hour).toFixed(0),
-    }));
-}
-
-/** NASA eclipse data via Horizons-style endpoint (approximation from known schedule) */
 function getUpcomingEclipses() {
-  /* Hard-coded upcoming eclipses (NASA publishes these years in advance).
-     Update this list periodically or integrate with a live eclipse API. */
   const now = new Date();
-  const eclipses = [
-    { date: "2026-08-12", type: "Total Solar",   region: "Arctic, Greenland, Europe", duration: "2m18s" },
-    { date: "2026-02-17", type: "Annular Solar",  region: "Antarctica",                duration: "3m57s" },
-    { date: "2025-09-07", type: "Total Lunar",    region: "Americas, Europe, Africa",  duration: "84m"   },
-    { date: "2025-03-14", type: "Total Lunar",    region: "Americas, Europe",           duration: "65m"   },
-    { date: "2027-08-02", type: "Total Solar",    region: "N Africa, Middle East",      duration: "6m23s" },
-  ];
-  return eclipses
+  return [
+    { date: "2026-08-12", type: "Total Solar",   region: "Arctic, Greenland, Europe", duration: "2m18s", isSolar: true  },
+    { date: "2026-02-17", type: "Annular Solar",  region: "Antarctica",                duration: "3m57s", isSolar: true  },
+    { date: "2025-09-07", type: "Total Lunar",    region: "Americas, Europe, Africa",  duration: "84m",   isSolar: false },
+    { date: "2025-03-14", type: "Total Lunar",    region: "Americas, Europe",          duration: "65m",   isSolar: false },
+    { date: "2027-08-02", type: "Total Solar",    region: "N Africa, Middle East",     duration: "6m23s", isSolar: true  },
+  ]
     .map((e) => ({ ...e, daysAway: Math.round((new Date(e.date) - now) / 86400000) }))
     .filter((e) => e.daysAway >= 0)
     .sort((a, b) => a.daysAway - b.daysAway)
     .slice(0, 3);
 }
 
-/* ─── Sub-components ─── */
+/* ─── Pick hero event ───────────────────────────────────────── */
+function pickHeroEvent(data) {
+  const activeShower = data.showers.find((s) => s.daysUntil <= 3);
+  if (activeShower) return {
+    title:         activeShower.name,
+    subtitle:      `Meteor Shower — peaks ${activeShower.peak.d}/${activeShower.peak.m}`,
+    funFact:       `Up to ${activeShower.rate} meteors per hour at peak. Parent body: ${activeShower.parent}. Best viewed after midnight with dark-adapted eyes — no telescope needed, just lie back and look up.`,
+    searchQuery:   activeShower.name + " meteor shower",
+    needsTelescope: false,
+    isDay:         false,
+  };
 
-/** Moon phase SVG disc */
+  const nextEclipse = data.eclipses[0];
+  if (nextEclipse && nextEclipse.daysAway <= 30) return {
+    title:         `${nextEclipse.type} Eclipse`,
+    subtitle:      `${nextEclipse.daysAway} days away · ${nextEclipse.region}`,
+    funFact:       nextEclipse.isSolar
+      ? `Totality lasts ${nextEclipse.duration}. The corona — the Sun's outer atmosphere — becomes visible to the naked eye only during total solar eclipses. Never look directly at the Sun without ISO 12312-2 certified eclipse glasses.`
+      : `The Moon turns a deep red during totality — hence "blood moon." Earth's atmosphere scatters blue light and bends red light onto the lunar surface. Safe to view with naked eyes for the full ${nextEclipse.duration}.`,
+    searchQuery:   nextEclipse.type + " eclipse NASA",
+    needsTelescope: nextEclipse.isSolar,
+    isDay:          nextEclipse.isSolar,
+  };
+
+  const nextConj = data.conjunctions.find((c) => c.daysAway >= 0 && c.daysAway <= 14);
+  if (nextConj) return {
+    title:         nextConj.name,
+    subtitle:      nextConj.daysAway === 0 ? "Happening tonight!" : `In ${nextConj.daysAway} days`,
+    funFact:       nextConj.tip,
+    searchQuery:   nextConj.objects + " conjunction night sky",
+    needsTelescope: true,
+    isDay:         false,
+  };
+
+  if (data.moon.illumination >= 95) return {
+    title:         "Full Moon",
+    subtitle:      `${data.moon.illumination}% illuminated tonight`,
+    funFact:       "A full moon is up to 14× brighter than a half moon — a phenomenon called the opposition surge, caused by the absence of shadows when sunlight hits the lunar surface head-on.",
+    searchQuery:   "full moon NASA photography",
+    needsTelescope: false,
+    isDay:         false,
+  };
+
+  if (data.kp >= 5) return {
+    title:         "Geomagnetic Storm",
+    subtitle:      `Kp ${data.kp} — aurora possible tonight`,
+    funFact:       "Green aurora forms when solar particles excite oxygen at ~100 km altitude. Red aurora comes from oxygen above 200 km. Purple and blue hues come from nitrogen — look toward the magnetic pole after midnight.",
+    searchQuery:   "aurora borealis NASA",
+    needsTelescope: false,
+    isDay:         false,
+  };
+
+  const nextShower = data.showers[0];
+  return {
+    title:         nextShower.name,
+    subtitle:      `Next meteor shower — in ${nextShower.daysUntil} days`,
+    funFact:       `The ${nextShower.name} are debris trails left by ${nextShower.parent}. As Earth crosses the trail each year, particles burn up at ~80 km altitude producing up to ${nextShower.rate} meteors/hour. No telescope needed.`,
+    searchQuery:   nextShower.name + " meteor shower space",
+    needsTelescope: false,
+    isDay:         false,
+  };
+}
+
+/* ─── Cloud cover check ─────────────────────────────────────── */
+function getViewingWarning(hourlyWeather) {
+  if (!hourlyWeather || hourlyWeather.length === 0) return null;
+  const now = hourlyWeather[0];
+  const { cloud, rain, visibility } = now;
+
+  if (rain > 0)          return { level: "blocked", icon: "🌧", message: `Rain detected (${rain}mm) — sky viewing not possible right now.` };
+  if (cloud > 80)        return { level: "blocked", icon: "☁️", message: `Overcast (${cloud}% cloud cover) — celestial events not visible right now.` };
+  if (cloud > 50)        return { level: "partial", icon: "⛅", message: `Partly cloudy (${cloud}%) — viewing may be interrupted.` };
+  if (visibility < 5000) return { level: "partial", icon: "🌫", message: `Low visibility (${(visibility / 1000).toFixed(1)}km) — atmosphere may affect clarity.` };
+  if (cloud <= 20)       return { level: "clear",   icon: "✨", message: `Clear skies (${cloud}% cloud) — great conditions for tonight!` };
+  return                        { level: "fair",    icon: "🌤", message: `Mostly clear (${cloud}% cloud) — decent viewing conditions.` };
+}
+
+/* ─── NASA APIs ─────────────────────────────────────────────── */
+
+async function fetchGeomagneticStorms() {
+  const end   = new Date().toISOString().slice(0, 10);
+  const start = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const res   = await fetch(`https://api.nasa.gov/DONKI/GST?startDate=${start}&endDate=${end}&api_key=${NASA_KEY}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+async function fetchSolarFlares() {
+  const end   = new Date().toISOString().slice(0, 10);
+  const start = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const res   = await fetch(`https://api.nasa.gov/DONKI/FLR?startDate=${start}&endDate=${end}&api_key=${NASA_KEY}`);
+  if (!res.ok) return [];
+  return res.json();
+}
+
+async function fetchCloseApproaches() {
+  const res = await fetch(`https://api.nasa.gov/neo/rest/v1/feed/today?detailed=false&api_key=${NASA_KEY}`);
+  if (!res.ok) return [];
+  const data = await res.json();
+  const today = Object.values(data.near_earth_objects)[0] || [];
+  return today.slice(0, 6).map((o) => ({
+    name:     o.name,
+    diameter: Math.round(o.estimated_diameter.meters.estimated_diameter_max),
+    distance: parseFloat(o.close_approach_data[0]?.miss_distance?.lunar).toFixed(1),
+    velocity: parseFloat(o.close_approach_data[0]?.relative_velocity?.kilometers_per_hour).toFixed(0),
+  }));
+}
+
+async function fetchNasaImage(query) {
+  try {
+    const res  = await fetch(`https://images-api.nasa.gov/search?q=${encodeURIComponent(query)}&media_type=image&page_size=8`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    for (const item of (data.collection?.items ?? [])) {
+      const link = item.links?.find((l) => l.rel === "preview");
+      if (link) return {
+        url:    link.href,
+        title:  item.data?.[0]?.title ?? query,
+        credit: item.data?.[0]?.center ?? "NASA",
+      };
+    }
+    return null;
+  } catch { return null; }
+}
+
+/* ─── Sub-components ─────────────────────────────────────────── */
+
 function MoonDisc({ phase }) {
-  /* phase 0=new, 0.5=full, 1=new again */
-  const isWaxing = phase < 0.5;
-  const p = isWaxing ? phase * 2 : (phase - 0.5) * 2; // 0→1 within half-cycle
-
-  /* We draw a circle filled dark, then overlay a coloured lune on the lit side */
   const cx = 50, cy = 50, r = 40;
-  /* The terminator ellipse x-radius goes from r (new) to 0 (quarter) to -r (full) */
-  const ex = r * Math.abs(1 - p * 2); // 0 at quarter, r at new/full
-  const lit = (isWaxing && p > 0.5) || (!isWaxing && p < 0.5);
-
+  const isWaxing = phase < 0.5;
+  const p  = isWaxing ? phase * 2 : (phase - 0.5) * 2;
+  const ex = r * Math.abs(1 - p * 2);
   return (
     <svg viewBox="0 0 100 100" width="80" height="80" className="cw-moon-disc">
-      <defs>
-        <clipPath id="moonClip">
-          <circle cx={cx} cy={cy} r={r} />
-        </clipPath>
-      </defs>
-      {/* Dark side */}
+      <defs><clipPath id="mc"><circle cx={cx} cy={cy} r={r} /></clipPath></defs>
       <circle cx={cx} cy={cy} r={r} fill="#0d1b2e" stroke="#4a6fa5" strokeWidth="1" />
-      {/* Lit portion — elliptical lune approximation */}
-      <g clipPath="url(#moonClip)">
-        {phase > 0.03 && phase < 0.97 && (
-          <ellipse
-            cx={isWaxing ? cx + ex * (p < 0.5 ? -1 : 1) : cx + ex * (p < 0.5 ? 1 : -1)}
-            cy={cy}
-            rx={ex === 0 ? r : r}
-            ry={r}
-            fill="#f5e6c8"
-            opacity="0.9"
-          />
-        )}
-        {/* Full moon */}
-        {(phase >= 0.47 && phase <= 0.53) && (
-          <circle cx={cx} cy={cy} r={r} fill="#f5e6c8" opacity="0.95" />
-        )}
-        {/* New moon (nearly invisible) */}
-        {(phase < 0.03 || phase > 0.97) && (
-          <circle cx={cx} cy={cy} r={r} fill="#0d1b2e" />
-        )}
+      <g clipPath="url(#mc)">
+        {phase > 0.03 && phase < 0.47 && <ellipse cx={isWaxing ? cx - ex : cx + ex} cy={cy} rx={r} ry={r} fill="#f5e6c8" opacity="0.9" />}
+        {phase >= 0.47 && phase <= 0.53 && <circle cx={cx} cy={cy} r={r} fill="#f5e6c8" opacity="0.95" />}
+        {phase > 0.53 && phase < 0.97  && <ellipse cx={isWaxing ? cx + ex : cx - ex} cy={cy} rx={r} ry={r} fill="#f5e6c8" opacity="0.9" />}
       </g>
-      {/* Subtle crater texture */}
       <circle cx={38} cy={38} r={5} fill="none" stroke="rgba(100,80,40,0.2)" strokeWidth="0.8" />
       <circle cx={60} cy={55} r={3} fill="none" stroke="rgba(100,80,40,0.15)" strokeWidth="0.8" />
     </svg>
   );
 }
 
-/** Kp-index bar indicator */
 function KpBar({ value = 0 }) {
-  const max = 9;
-  const segments = Array.from({ length: max }, (_, i) => i + 1);
   return (
     <div className="cw-kp-bar">
-      {segments.map((s) => (
-        <div
-          key={s}
-          className="cw-kp-seg"
-          style={{
-            background: s <= value
-              ? s <= 3 ? "#4fc3f7" : s <= 6 ? "#81c784" : "#ef9a9a"
-              : "rgba(255,255,255,0.07)",
-          }}
-          title={`Kp ${s}`}
-        />
+      {Array.from({ length: 9 }, (_, i) => i + 1).map((s) => (
+        <div key={s} className="cw-kp-seg" style={{
+          background: s <= value
+            ? s <= 3 ? "#4fc3f7" : s <= 6 ? "#81c784" : "#ef9a9a"
+            : "rgba(255,255,255,0.07)",
+        }} />
       ))}
       <span className="cw-kp-label">Kp {value}</span>
     </div>
   );
 }
 
-/** Section header */
 function SectionTitle({ emoji, title, subtitle }) {
   return (
     <div className="cw-section-title">
@@ -235,15 +270,77 @@ function SectionTitle({ emoji, title, subtitle }) {
   );
 }
 
-/* ─── Main component ─── */
-export default function CelestialWeather({ lat = null, lng = null }) {
-  const [data, setData]         = useState(null);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState(null);
-  const [coords, setCoords]     = useState({ lat, lng });
-  const [locName, setLocName]   = useState("");
+function ViewingBanner({ warning }) {
+  if (!warning) return null;
+  const palette = {
+    blocked: { bg: "rgba(239,83,80,0.12)",  border: "rgba(239,83,80,0.35)",  text: "#ef9a9a" },
+    partial: { bg: "rgba(255,193,7,0.10)",  border: "rgba(255,193,7,0.3)",   text: "#ffd54f" },
+    fair:    { bg: "rgba(74,111,165,0.15)", border: "rgba(74,111,165,0.3)",  text: "#90caf9" },
+    clear:   { bg: "rgba(79,195,247,0.10)", border: "rgba(79,195,247,0.3)",  text: "#4fc3f7" },
+  };
+  const c = palette[warning.level] || palette.fair;
+  return (
+    <div className="cw-viewing-banner" style={{ background: c.bg, borderColor: c.border, color: c.text }}>
+      <span className="cw-banner-icon">{warning.icon}</span>
+      <span>{warning.message}</span>
+    </div>
+  );
+}
 
-  const load = useCallback(async (latitude, longitude, label = "") => {
+/* ─── Hero panel ─────────────────────────────────────────────── */
+function HeroPanel({ hero, image, cloudWarning }) {
+  if (!hero) return null;
+  const blocked = cloudWarning?.level === "blocked";
+
+  return (
+    <div className="cw-hero">
+      <div className="cw-hero-bg" style={image ? { backgroundImage: `url(${image.url})` } : {}} />
+      <div className="cw-hero-overlay" />
+
+      <div className="cw-hero-content">
+        <div className="cw-hero-eyebrow">
+          ✦ {hero.isDay ? "Event of the Day" : "Event of the Night"}
+        </div>
+        <h2 className="cw-hero-title">{hero.title}</h2>
+        <div className="cw-hero-subtitle">{hero.subtitle}</div>
+
+        {hero.needsTelescope && (
+          <div className="cw-telescope-badge">🔭 Telescope or binoculars recommended</div>
+        )}
+
+        <ViewingBanner warning={cloudWarning} />
+
+        {blocked && (
+          <div className="cw-hero-blocked-note">
+            The event is still occurring — check again when skies clear.
+          </div>
+        )}
+
+        <div className="cw-hero-funfact">
+          <span className="cw-funfact-label">✦ Fun fact</span>
+          <p>{hero.funFact}</p>
+        </div>
+
+        {image && (
+          <div className="cw-hero-credit">📷 {image.title} · {image.credit}</div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main ───────────────────────────────────────────────────── */
+export default function CelestialWeather({ hourlyWeather = null }) {
+  const [data, setData]           = useState(null);
+  const [hero, setHero]           = useState(null);
+  const [heroImage, setHeroImage] = useState(null);
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState(null);
+  const [locName, setLocName]     = useState("");
+
+  const cloudWarning = getViewingWarning(hourlyWeather);
+
+  const load = useCallback(async (lat, lng, label = "") => {
     setLoading(true);
     setError(null);
     try {
@@ -253,35 +350,37 @@ export default function CelestialWeather({ lat = null, lng = null }) {
         fetchCloseApproaches(),
       ]);
 
-      /* Latest Kp index from storm data */
       const latestKp = storms.length > 0
-        ? Math.max(...storms.flatMap((s) =>
-            s.allKpIndex?.map((k) => parseFloat(k.kpIndex)) || [0]
-          ))
+        ? Math.max(...storms.flatMap((s) => s.allKpIndex?.map((k) => parseFloat(k.kpIndex)) || [0]))
         : 0;
 
-      /* Latest flare class */
-      const latestFlare = flares.length > 0
-        ? flares[flares.length - 1]
-        : null;
+      const showers = METEOR_SHOWERS
+        .map((s) => ({ ...s, daysUntil: daysUntilPeak(s.peak), activity: getShowerActivity(s.peak) }))
+        .sort((a, b) => a.daysUntil - b.daysUntil);
 
-      /* Showers with activity */
-      const showers = METEOR_SHOWERS.map((s) => ({
-        ...s,
-        daysUntil: daysUntilPeak(s.peak),
-        activity:  getShowerActivity(s.peak),
-      })).sort((a, b) => a.daysUntil - b.daysUntil);
+      const conjunctions = CONJUNCTIONS
+        .map((c) => ({ ...c, daysAway: daysUntilDate(c.date) }))
+        .filter((c) => c.daysAway >= 0)
+        .sort((a, b) => a.daysAway - b.daysAway);
 
-      setData({
-        moon:     getMoonPhase(),
-        aurora:   getAuroraProbability(latitude),
-        eclipses: getUpcomingEclipses(),
+      const assembled = {
+        moon:         getMoonPhase(),
+        aurora:       getAuroraProbability(lat),
+        eclipses:     getUpcomingEclipses(),
         showers,
-        kp:       Math.round(latestKp),
-        flare:    latestFlare,
+        conjunctions,
+        kp:           Math.round(latestKp),
+        flare:        flares.length > 0 ? flares[flares.length - 1] : null,
         neos,
-      });
+      };
+
+      setData(assembled);
       setLocName(label);
+
+      const heroEvent = pickHeroEvent(assembled);
+      setHero(heroEvent);
+      fetchNasaImage(heroEvent.searchQuery).then(setHeroImage);
+
     } catch (err) {
       setError("Could not load celestial data. " + err.message);
     } finally {
@@ -289,35 +388,21 @@ export default function CelestialWeather({ lat = null, lng = null }) {
     }
   }, []);
 
-  /* Auto-load if parent passed coords */
-  useEffect(() => {
-    if (lat !== null && lng !== null) {
-      setCoords({ lat, lng });
-      load(lat, lng, "Current Location");
-    }
-  }, [lat, lng, load]);
-
   async function handleLocate() {
     setLoading(true);
     setError(null);
     try {
-      const { lat: la, lng: lo } = await getUserLocation();
-      setCoords({ lat: la, lng: lo });
-      await load(la, lo, "My Location");
+      const { lat, lng } = await getUserLocation();
+      await load(lat, lng, "My Location");
     } catch (err) {
       setError(err.message || "Could not get your location.");
       setLoading(false);
     }
   }
 
-  /* Next active shower (soonest peak ≤ 7 days) */
-  const nextShower = data?.showers.find((s) => s.daysUntil <= 7);
-  const upcomingShowers = data?.showers.slice(0, 4);
-
   return (
     <div className="cw-root">
 
-      {/* ── Header ── */}
       <div className="cw-header">
         <div className="cw-header-left">
           <div className="cw-logo">✦ Celestial Events</div>
@@ -330,11 +415,16 @@ export default function CelestialWeather({ lat = null, lng = null }) {
 
       {error && <div className="cw-error">{error}</div>}
 
-      {/* ── Empty state ── */}
+      {/* Show cloud warning even before celestial data loads */}
+      {!data && cloudWarning && <ViewingBanner warning={cloudWarning} />}
+
       {!data && !loading && (
         <div className="cw-empty">
           <div className="cw-empty-icon">🔭</div>
-          <div className="cw-empty-label">Press "Load My Sky" to see celestial events for your location</div>
+          <div className="cw-empty-label">
+            Press "Load My Sky" to see tonight's celestial events
+            {hourlyWeather ? " — weather data already loaded above." : "."}
+          </div>
         </div>
       )}
 
@@ -345,150 +435,158 @@ export default function CelestialWeather({ lat = null, lng = null }) {
         </div>
       )}
 
-      {/* ── Dashboard ── */}
       {data && !loading && (
-        <div className="cw-grid">
+        <>
+          <HeroPanel hero={hero} image={heroImage} cloudWarning={cloudWarning} />
 
-          {/* ── Moon Phase ── */}
-          <div className="cw-card cw-card-moon">
-            <SectionTitle emoji="🌕" title="Moon Phase" subtitle={data.moon.name} />
-            <div className="cw-moon-body">
-              <MoonDisc phase={data.moon.phase} />
-              <div className="cw-moon-stats">
-                <div className="cw-moon-stat">
-                  <span className="cw-stat-label">Illumination</span>
-                  <span className="cw-stat-val">{data.moon.illumination}%</span>
-                </div>
-                <div className="cw-moon-stat">
-                  <span className="cw-stat-label">Full moon in</span>
-                  <span className="cw-stat-val">{data.moon.daysToFull}d</span>
-                </div>
-                <div className="cw-moon-stat">
-                  <span className="cw-stat-label">New moon in</span>
-                  <span className="cw-stat-val">{data.moon.daysToNew}d</span>
-                </div>
-                <div className="cw-moon-phase-bar">
-                  <div className="cw-moon-phase-fill" style={{ width: `${data.moon.illumination}%` }} />
-                </div>
-                <div className="cw-moon-cycle-label">
-                  {data.moon.illumination < 50 ? "🌒 Waxing cycle" : "🌘 Waning cycle"}
+          <div className="cw-grid">
+
+            {/* Moon */}
+            <div className="cw-card cw-card-moon">
+              <SectionTitle emoji="🌕" title="Moon Phase" subtitle={data.moon.name} />
+              <div className="cw-moon-body">
+                <MoonDisc phase={data.moon.phase} />
+                <div className="cw-moon-stats">
+                  <div className="cw-moon-stat"><span className="cw-stat-label">Illumination</span><span className="cw-stat-val">{data.moon.illumination}%</span></div>
+                  <div className="cw-moon-stat"><span className="cw-stat-label">Full moon in</span><span className="cw-stat-val">{data.moon.daysToFull}d</span></div>
+                  <div className="cw-moon-stat"><span className="cw-stat-label">New moon in</span><span className="cw-stat-val">{data.moon.daysToNew}d</span></div>
+                  <div className="cw-moon-phase-bar">
+                    <div className="cw-moon-phase-fill" style={{ width: `${data.moon.illumination}%` }} />
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* ── Aurora ── */}
-          <div className="cw-card cw-card-aurora">
-            <SectionTitle emoji="🌌" title="Aurora Activity" subtitle={data.aurora.zone} />
-            <div className="cw-aurora-chance">
-              <div
-                className="cw-aurora-ring"
-                style={{ "--pct": `${data.aurora.chance}%` }}
-              >
-                <span className="cw-aurora-pct">{data.aurora.chance}%</span>
-                <span className="cw-aurora-sub">chance</span>
+            {/* Aurora */}
+            <div className="cw-card cw-card-aurora">
+              <SectionTitle emoji="🌌" title="Aurora Activity" subtitle={data.aurora.zone} />
+              <div className="cw-aurora-chance">
+                <div className="cw-aurora-ring" style={{ "--pct": `${data.aurora.chance}%` }}>
+                  <span className="cw-aurora-pct">{data.aurora.chance}%</span>
+                  <span className="cw-aurora-sub">chance</span>
+                </div>
               </div>
-            </div>
-            <div className="cw-aurora-info">
-              <div className="cw-info-row">
-                <span className="cw-info-label">Geomagnetic Kp</span>
-                <KpBar value={data.kp} />
-              </div>
-              {data.flare && (
+              <div className="cw-aurora-info">
                 <div className="cw-info-row">
-                  <span className="cw-info-label">Latest solar flare</span>
-                  <span className="cw-info-val cw-flare-badge">
-                    {data.flare.classType}
-                  </span>
+                  <span className="cw-info-label">Geomagnetic Kp</span>
+                  <KpBar value={data.kp} />
                 </div>
-              )}
-              <div className="cw-aurora-tip">{data.aurora.tip}</div>
+                {data.flare && (
+                  <div className="cw-info-row">
+                    <span className="cw-info-label">Latest solar flare</span>
+                    <span className="cw-info-val cw-flare-badge">{data.flare.classType}</span>
+                  </div>
+                )}
+                <div className="cw-aurora-tip">{data.aurora.tip}</div>
+                {cloudWarning?.level === "blocked" && (
+                  <ViewingBanner warning={{ level: "blocked", icon: "☁️", message: "Cloudy — aurora not visible right now even if active." }} />
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* ── Meteor Showers ── */}
-          <div className="cw-card cw-card-meteors">
-            <SectionTitle emoji="☄️" title="Meteor Showers"
-              subtitle={nextShower ? `${nextShower.name} peaks in ${nextShower.daysUntil}d` : "No active shower"} />
-            <div className="cw-shower-list">
-              {upcomingShowers.map((s) => (
-                <div key={s.name} className="cw-shower-row">
-                  <div className="cw-shower-left">
-                    <div
-                      className="cw-shower-dot"
-                      style={{ background: s.activity.color, boxShadow: `0 0 6px ${s.activity.color}` }}
-                    />
-                    <div>
-                      <div className="cw-shower-name">{s.name}</div>
-                      <div className="cw-shower-meta">
-                        Peak {`${String(s.peak.d).padStart(2,"0")}/${String(s.peak.m).padStart(2,"0")}`}
-                        · {s.rate} ZHR · {s.parent}
+            {/* Meteor showers */}
+            <div className="cw-card cw-card-meteors">
+              <SectionTitle emoji="☄️" title="Meteor Showers"
+                subtitle={data.showers[0]?.daysUntil <= 3
+                  ? `${data.showers[0].name} active now!`
+                  : `Next: ${data.showers[0]?.name} in ${data.showers[0]?.daysUntil}d`} />
+              <div className="cw-shower-list">
+                {data.showers.slice(0, 4).map((s) => (
+                  <div key={s.name} className="cw-shower-row">
+                    <div className="cw-shower-left">
+                      <div className="cw-shower-dot" style={{ background: s.activity.color, boxShadow: `0 0 6px ${s.activity.color}` }} />
+                      <div>
+                        <div className="cw-shower-name">{s.name}</div>
+                        <div className="cw-shower-meta">Peak {String(s.peak.d).padStart(2,"0")}/{String(s.peak.m).padStart(2,"0")} · {s.rate} ZHR · {s.parent}</div>
                       </div>
                     </div>
-                  </div>
-                  <div className="cw-shower-badge" style={{ background: s.activity.color + "22", color: s.activity.color }}>
-                    {s.activity.label}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Eclipses ── */}
-          <div className="cw-card cw-card-eclipses">
-            <SectionTitle emoji="🌑" title="Upcoming Eclipses" subtitle="NASA eclipse schedule" />
-            <div className="cw-eclipse-list">
-              {data.eclipses.map((e) => (
-                <div key={e.date} className="cw-eclipse-row">
-                  <div className="cw-eclipse-icon">
-                    {e.type.includes("Solar") ? "🌞" : "🌕"}
-                  </div>
-                  <div className="cw-eclipse-info">
-                    <div className="cw-eclipse-type">{e.type} Eclipse</div>
-                    <div className="cw-eclipse-detail">
-                      {new Date(e.date + "T12:00:00").toLocaleDateString("en-AU", {
-                        day: "numeric", month: "long", year: "numeric"
-                      })}
-                      · {e.region}
+                    <div className="cw-shower-badge" style={{ background: s.activity.color + "22", color: s.activity.color }}>
+                      {s.activity.label}
                     </div>
-                    <div className="cw-eclipse-detail">Duration: {e.duration}</div>
-                  </div>
-                  <div className="cw-eclipse-days">
-                    <span className="cw-eclipse-countdown">{e.daysAway}</span>
-                    <span className="cw-eclipse-days-label">days</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Near-Earth Objects / Comets ── */}
-          <div className="cw-card cw-card-neos">
-            <SectionTitle emoji="🌠" title="Near-Earth Objects Today" subtitle="Via NASA NeoWs" />
-            {data.neos.length === 0 ? (
-              <div className="cw-neo-empty">No close approaches today</div>
-            ) : (
-              <div className="cw-neo-list">
-                <div className="cw-neo-header-row">
-                  <span>Object</span>
-                  <span>Size (m)</span>
-                  <span>Distance (LD)</span>
-                  <span>Speed (km/h)</span>
-                </div>
-                {data.neos.map((n, i) => (
-                  <div key={i} className="cw-neo-row">
-                    <span className="cw-neo-name">{n.name.replace(/[()]/g, "")}</span>
-                    <span>{n.diameter}</span>
-                    <span>{n.distance}</span>
-                    <span>{Number(n.velocity).toLocaleString()}</span>
                   </div>
                 ))}
               </div>
-            )}
-            <div className="cw-neo-footnote">LD = Lunar Distance (384,400 km)</div>
-          </div>
+              {cloudWarning?.level === "blocked" && (
+                <ViewingBanner warning={{ level: "blocked", icon: "☁️", message: "Overcast — meteors not visible tonight." }} />
+              )}
+            </div>
 
-        </div>
+            {/* Eclipses */}
+            <div className="cw-card cw-card-eclipses">
+              <SectionTitle emoji="🌑" title="Upcoming Eclipses" subtitle="NASA eclipse schedule" />
+              <div className="cw-eclipse-list">
+                {data.eclipses.map((e) => (
+                  <div key={e.date} className="cw-eclipse-row">
+                    <div className="cw-eclipse-icon">{e.isSolar ? "🌞" : "🌕"}</div>
+                    <div className="cw-eclipse-info">
+                      <div className="cw-eclipse-type">
+                        {e.type} Eclipse
+                        {e.isSolar && <span className="cw-telescope-inline" title="Eclipse glasses required">🔭</span>}
+                      </div>
+                      <div className="cw-eclipse-detail">
+                        {new Date(e.date + "T12:00:00").toLocaleDateString("en-AU", { day: "numeric", month: "long", year: "numeric" })} · {e.region}
+                      </div>
+                      <div className="cw-eclipse-detail">Duration: {e.duration}</div>
+                      {e.isSolar && <div className="cw-eclipse-solar-warn">⚠️ Eclipse glasses required — ISO 12312-2 certified</div>}
+                    </div>
+                    <div className="cw-eclipse-days">
+                      <span className="cw-eclipse-countdown">{e.daysAway}</span>
+                      <span className="cw-eclipse-days-label">days</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Conjunctions */}
+            <div className="cw-card cw-card-conjunctions">
+              <SectionTitle emoji="🔭" title="Planetary Conjunctions" subtitle="Telescope recommended" />
+              <div className="cw-conjunction-list">
+                {data.conjunctions.slice(0, 3).map((c) => (
+                  <div key={c.name} className="cw-conjunction-row">
+                    <div className="cw-conjunction-left">
+                      <div className="cw-conjunction-name">{c.objects}</div>
+                      <div className="cw-conjunction-tip">{c.tip}</div>
+                    </div>
+                    <div className="cw-conjunction-right">
+                      <span className="cw-conjunction-days">
+                        {c.daysAway === 0 ? "Tonight!" : `${c.daysAway}d`}
+                      </span>
+                      <span className="cw-telescope-tag">🔭</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {cloudWarning?.level === "blocked" && (
+                <ViewingBanner warning={{ level: "blocked", icon: "☁️", message: "Overcast — conjunctions not visible tonight." }} />
+              )}
+            </div>
+
+            {/* NEOs — full width */}
+            <div className="cw-card cw-card-neos">
+              <SectionTitle emoji="🌠" title="Near-Earth Objects Today" subtitle="Via NASA NeoWs" />
+              {data.neos.length === 0 ? (
+                <div className="cw-neo-empty">No close approaches today</div>
+              ) : (
+                <div className="cw-neo-list">
+                  <div className="cw-neo-header-row">
+                    <span>Object</span><span>Size (m)</span><span>Distance (LD)</span><span>Speed (km/h)</span>
+                  </div>
+                  {data.neos.map((n, i) => (
+                    <div key={i} className="cw-neo-row">
+                      <span className="cw-neo-name">{n.name.replace(/[()]/g, "")}</span>
+                      <span>{n.diameter}</span>
+                      <span>{n.distance}</span>
+                      <span>{Number(n.velocity).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="cw-neo-footnote">LD = Lunar Distance (384,400 km)</div>
+            </div>
+
+          </div>
+        </>
       )}
     </div>
   );
