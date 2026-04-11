@@ -422,6 +422,7 @@
 .wt-hour-cell.wt-hour-now {
   background: rgba(91,200,232,0.1);
   border-color: rgba(91,200,232,0.25);
+  box-shadow: 0 0 14px rgba(91,200,232,0.12);
 }
 
 .wt-hour-label {
