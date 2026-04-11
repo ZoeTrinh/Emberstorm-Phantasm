@@ -13,10 +13,10 @@ export default function Navbar() {
     <nav className="navbar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <div className="nav-logo">CelestSky</div>
       <ul className="nav-links" style={{ display: 'flex', listStyle: 'none', gap: 24, margin: 0 }}>
-        <li><a href="#">Info</a></li>
-        <li><a href="#">Satellites selector</a></li>
-        <li><a href="#">Drag model</a></li>
-        <li><a href="#">Contact</a></li>
+        <li><a href="#">Weather Forecast</a></li>
+        <li><a href="#">Celestial Phenomena</a></li>
+        <li><a href="#">Calendar</a></li>
+        <li><a href="#"></a></li>
       </ul>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         {user ? (
