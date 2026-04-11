@@ -3,9 +3,9 @@ import { useState, useEffect, useRef } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import WeatherTracker from './components/WeatherTracker.jsx'
 import StarBackground from './components/StarBackground'
-import CelestialOverlay from './components/CelestialOverlay.jsx'
 import './App.css'
 import Navbar from './components/Navbar'
+import Aurora from './components/Aurora'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import CelestialWeather from './components/CelestialWeather'
@@ -49,14 +49,13 @@ function MainApp() {
   return (
     <>
       <StarBackground />
-      <CelestialOverlay />
 
       <Navbar
         onForecastClick={()       => forecastRef.current?.scrollIntoView({ behavior: 'smooth' })}
         onCelestialClick={()      => celestialRef.current?.scrollIntoView({ behavior: 'smooth' })}
-        onRecommendationClick={()  => recommendationRef.current?.scrollIntoView({ behavior: 'smooth' })}
+        onRecommendationClick={() => recommendationRef.current?.scrollIntoView({ behavior: 'smooth' })}
         onLoginClick={()          => setLoginModal(true)}
-        onRegisterClick={()        => setRegisterModal(true)}
+        onRegisterClick={()       => setRegisterModal(true)}
       />
 
       {loginModal && (
@@ -66,9 +65,24 @@ function MainApp() {
         <Register isModal onClose={() => { setRegisterModal(false); askLocation() }} />
       )}
 
+      {/* titlePanel: background image, aurora, floating title, ghost spacers, button */}
       <div className="titlePanel">
-        <h1>Should you look up<br />the sky today?</h1>
-        <p>Celestial phenomena calendar using space weather</p>
+        {/* Aurora — absolutely fills panel, above scrim, below title */}
+        <Aurora
+          colorStops={['#67e8f9', '#c084fc', '#38bdf8']}
+          amplitude={1.1}
+          blend={0.6}
+          speed={0.4}
+        />
+        {/* Visible title — absolutely overlaid, above aurora */}
+        <div className="floatingTitle">
+          <h1>Should you look up<br />the sky today?</h1>
+          <p>Celestial phenomena calendar using space weather</p>
+        </div>
+        {/* Invisible ghost spacers — push button into correct position */}
+        <h1 className="titlePanel-ghost">Should you look up<br />the sky today?</h1>
+        <p className="titlePanel-ghost">Celestial phenomena calendar using space weather</p>
+        {/* Button */}
         <div className="galaxy-button">
           <button className="space-button" onClick={handleViewSkyClick}>
             <span className="backdrop" />
