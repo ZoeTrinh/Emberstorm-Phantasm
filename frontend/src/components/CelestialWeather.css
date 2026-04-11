@@ -1,0 +1,495 @@
+/* ─── Root ─────────────────────────────────────── */
+.cw-root {
+  width: 100%;
+  padding: 24px 0 0;
+  font-family: 'Barlow Condensed', 'Barlow', sans-serif;
+  color: #c8dff5;
+}
+
+/* ─── Header ─────────────────────────────────────── */
+.cw-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.cw-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.cw-logo {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #a8d4f5;
+}
+
+.cw-loc-tag {
+  font-size: 13px;
+  color: rgba(168, 212, 245, 0.6);
+  background: rgba(74, 111, 165, 0.15);
+  border: 1px solid rgba(74, 111, 165, 0.3);
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.cw-btn {
+  background: rgba(74, 111, 165, 0.2);
+  border: 1px solid rgba(74, 111, 165, 0.5);
+  color: #a8d4f5;
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.cw-btn:hover:not(:disabled) {
+  background: rgba(74, 111, 165, 0.4);
+  border-color: rgba(168, 212, 245, 0.6);
+}
+
+.cw-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cw-error {
+  font-size: 13px;
+  color: #ef9a9a;
+  background: rgba(239, 83, 80, 0.1);
+  border: 1px solid rgba(239, 83, 80, 0.3);
+  padding: 8px 14px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+/* ─── Empty / Loading state ───────────────────── */
+.cw-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  opacity: 0.6;
+}
+
+.cw-empty-icon {
+  font-size: 40px;
+}
+
+.cw-empty-label {
+  font-size: 15px;
+  text-align: center;
+  color: rgba(168, 212, 245, 0.7);
+}
+
+@keyframes cw-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.cw-spin {
+  display: inline-block;
+  animation: cw-spin 2s linear infinite;
+}
+
+/* ─── Grid layout ─────────────────────────────── */
+.cw-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.cw-card-neos {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 700px) {
+  .cw-grid {
+    grid-template-columns: 1fr;
+  }
+  .cw-card-neos {
+    grid-column: auto;
+  }
+}
+
+/* ─── Card base ───────────────────────────────── */
+.cw-card {
+  background: rgba(10, 20, 40, 0.6);
+  border: 1px solid rgba(74, 111, 165, 0.25);
+  border-radius: 16px;
+  padding: 20px;
+  backdrop-filter: blur(8px);
+}
+
+/* ─── Section title ───────────────────────────── */
+.cw-section-title {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.cw-section-emoji {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.cw-section-name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a8d4f5;
+}
+
+.cw-section-sub {
+  font-size: 13px;
+  color: rgba(168, 212, 245, 0.5);
+  margin-top: 2px;
+}
+
+/* ─── Moon card ───────────────────────────────── */
+.cw-moon-body {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.cw-moon-disc {
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 12px rgba(245, 230, 200, 0.3));
+}
+
+.cw-moon-stats {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cw-moon-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.cw-stat-label {
+  color: rgba(168, 212, 245, 0.5);
+}
+
+.cw-stat-val {
+  font-weight: 600;
+  color: #c8dff5;
+}
+
+.cw-moon-phase-bar {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.cw-moon-phase-fill {
+  height: 100%;
+  background: linear-gradient(to right, #4a6fa5, #f5e6c8);
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.cw-moon-cycle-label {
+  font-size: 12px;
+  color: rgba(168, 212, 245, 0.4);
+  margin-top: 2px;
+}
+
+/* ─── Aurora card ─────────────────────────────── */
+.cw-aurora-chance {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0 16px;
+}
+
+.cw-aurora-ring {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: conic-gradient(
+    #4fc3f7 0%,
+    var(--pct, 50%),
+    rgba(255,255,255,0.06) var(--pct, 50%)
+  );
+  position: relative;
+}
+
+.cw-aurora-ring::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border-radius: 50%;
+  background: #0a1428;
+}
+
+.cw-aurora-pct {
+  position: relative;
+  z-index: 1;
+  font-size: 22px;
+  font-weight: 700;
+  color: #4fc3f7;
+  line-height: 1;
+}
+
+.cw-aurora-sub {
+  position: relative;
+  z-index: 1;
+  font-size: 11px;
+  color: rgba(79, 195, 247, 0.6);
+}
+
+.cw-aurora-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cw-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cw-info-label {
+  font-size: 12px;
+  color: rgba(168, 212, 245, 0.5);
+  flex-shrink: 0;
+}
+
+.cw-info-val {
+  font-size: 13px;
+  color: #c8dff5;
+  font-weight: 600;
+}
+
+.cw-flare-badge {
+  background: rgba(239, 154, 154, 0.15);
+  color: #ef9a9a;
+  border: 1px solid rgba(239, 154, 154, 0.3);
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+}
+
+.cw-aurora-tip {
+  font-size: 12px;
+  color: rgba(168, 212, 245, 0.4);
+  font-style: italic;
+  border-top: 1px solid rgba(74, 111, 165, 0.15);
+  padding-top: 8px;
+}
+
+/* ─── Kp bar ──────────────────────────────────── */
+.cw-kp-bar {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.cw-kp-seg {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  transition: background 0.3s;
+}
+
+.cw-kp-label {
+  font-size: 12px;
+  color: rgba(168, 212, 245, 0.6);
+  margin-left: 6px;
+}
+
+/* ─── Meteor shower card ──────────────────────── */
+.cw-shower-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cw-shower-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.cw-shower-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cw-shower-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.cw-shower-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c8dff5;
+  white-space: nowrap;
+}
+
+.cw-shower-meta {
+  font-size: 11px;
+  color: rgba(168, 212, 245, 0.4);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cw-shower-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ─── Eclipse card ────────────────────────────── */
+.cw-eclipse-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cw-eclipse-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(74, 111, 165, 0.12);
+}
+
+.cw-eclipse-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.cw-eclipse-icon {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.cw-eclipse-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cw-eclipse-type {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c8dff5;
+}
+
+.cw-eclipse-detail {
+  font-size: 12px;
+  color: rgba(168, 212, 245, 0.45);
+  margin-top: 2px;
+}
+
+.cw-eclipse-days {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  min-width: 44px;
+}
+
+.cw-eclipse-countdown {
+  font-size: 26px;
+  font-weight: 700;
+  color: #a8d4f5;
+  line-height: 1;
+}
+
+.cw-eclipse-days-label {
+  font-size: 11px;
+  color: rgba(168, 212, 245, 0.4);
+}
+
+/* ─── NEO card ────────────────────────────────── */
+.cw-neo-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cw-neo-header-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 8px;
+  font-size: 11px;
+  color: rgba(168, 212, 245, 0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(74, 111, 165, 0.2);
+}
+
+.cw-neo-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 8px;
+  font-size: 13px;
+  color: #c8dff5;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(74, 111, 165, 0.07);
+}
+
+.cw-neo-name {
+  color: #a8d4f5;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cw-neo-empty {
+  font-size: 13px;
+  color: rgba(168, 212, 245, 0.4);
+  text-align: center;
+  padding: 20px 0;
+}
+
+.cw-neo-footnote {
+  font-size: 11px;
+  color: rgba(168, 212, 245, 0.3);
+  margin-top: 10px;
+  text-align: right;
+}

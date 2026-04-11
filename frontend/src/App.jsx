@@ -9,6 +9,7 @@ import './App.css'
 import Navbar from './components/Navbar'
 import Login from './pages/Login'
 import Register from './pages/Register'
+import CelestialWeather from "./components/CelestialWeather";
 
 function MainApp() {
   return (
@@ -37,6 +38,7 @@ function MainApp() {
         <div className="glass card">
           <h2>Dashboard</h2>
           <WeatherTracker />
+          <CelestialWeather />
         </div>
 
         <div className="glass card">
