@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom'
-import BorderGlow from './BorderGlow'
 
 export default function Navbar({ onForecastClick, onCelestialClick, onLoginClick, onRegisterClick }) {
   const navigate = useNavigate()
@@ -11,19 +10,7 @@ export default function Navbar({ onForecastClick, onCelestialClick, onLoginClick
   }
 
   return (
-    <BorderGlow
-      className="navbar-glow-wrapper"
-      edgeSensitivity={20}
-      glowColor="270 80 75"
-      backgroundColor="transparent"
-      borderRadius={0}
-      glowRadius={32}
-      glowIntensity={1.2}
-      coneSpread={30}
-      animated={false}
-      colors={['#c084fc', '#f472b6', '#38bdf8']}
-      fillOpacity={0}
-    >
+    
       <nav className="navbar">
         <div className="nav-logo">✦ CelestSky</div>
 
@@ -59,7 +46,6 @@ export default function Navbar({ onForecastClick, onCelestialClick, onLoginClick
           )}
         </div>
       </nav>
-    </BorderGlow>
   )
 }
 
