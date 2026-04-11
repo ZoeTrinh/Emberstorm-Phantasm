@@ -10,7 +10,7 @@
   border-radius: 20px;
   padding: 32px 36px;
   background: rgba(8, 14, 30, 0.72);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(192, 132, 252, 0.18);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   transition: border-color 0.4s;
@@ -18,20 +18,23 @@
 
 /* Per-grade border tints */
 .sr-card--blocked { border-color: rgba(248, 113, 113, 0.2); }
-.sr-card--poor    { border-color: rgba(251, 191, 36,  0.2); }
+.sr-card--poor    { border-color: rgba(255, 209, 92,  0.2); }
 .sr-card--fair    { border-color: rgba(103, 232, 249, 0.2); }
 .sr-card--good    { border-color: rgba(192, 132, 252, 0.25); }
 
-/* CSS variables for colours */
+/* CSS variables for colours — aligned with App.css */
 :root {
   --sr-red:         #f87171;
   --sr-red-glow:    radial-gradient(ellipse at 50% 0%, rgba(248,113,113,0.18) 0%, transparent 70%);
-  --sr-amber:       #fbbf24;
-  --sr-amber-glow:  radial-gradient(ellipse at 50% 0%, rgba(251,191,36,0.16) 0%, transparent 70%);
+  --sr-amber:       #ffd15c;
+  --sr-amber-glow:  radial-gradient(ellipse at 50% 0%, rgba(255,209,92,0.16) 0%, transparent 70%);
   --sr-teal:        #67e8f9;
   --sr-teal-glow:   radial-gradient(ellipse at 50% 0%, rgba(103,232,249,0.14) 0%, transparent 70%);
   --sr-purple:      #c084fc;
   --sr-purple-glow: radial-gradient(ellipse at 50% 0%, rgba(192,132,252,0.18) 0%, transparent 70%);
+  --text-bright:   #f0f4ff;
+  --text-mid:      #cbd5f5;
+  --text-soft:     rgba(203, 213, 245, 0.75);
 }
 
 /* Ambient glow blob sits at top of card */
@@ -57,11 +60,12 @@
 }
 
 .sr-eyebrow {
-  font-size: 11px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 200;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(168, 212, 245, 0.45);
-  font-family: 'Barlow Condensed', sans-serif;
+  color: #c084fc;
 }
 
 .sr-icon {
@@ -71,12 +75,14 @@
 
 /* Verdict */
 .sr-verdict {
-  font-size: 38px;
-  font-weight: 700;
   font-family: 'Barlow Condensed', sans-serif;
-  letter-spacing: -0.01em;
-  line-height: 1;
+  font-size: 50px;
+  font-weight: 200;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
   margin-bottom: 16px;
+  color: var(--text-bright);
+  text-shadow: 0 2px 40px rgba(168, 85, 247, 0.4);
 }
 
 /* Pill row */
@@ -88,27 +94,30 @@
 }
 
 .sr-pill {
-  font-size: 12px;
   font-family: 'Barlow Condensed', sans-serif;
-  letter-spacing: 0.04em;
+  font-size: 18px;
+  font-weight: 200;
+  letter-spacing: 0.08em;
   padding: 4px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: rgba(200, 220, 255, 0.85);
+  background: rgba(192, 132, 252, 0.08);
+  border: 1px solid rgba(192, 132, 252, 0.18);
+  color: var(--text-bright);
   transition: opacity 0.3s;
 }
 
 .sr-pill--dim {
-  opacity: 0.35;
+  opacity: 0.7;
 }
 
 /* Description */
 .sr-desc {
-  font-size: 14px;
-  color: rgba(168, 212, 245, 0.7);
+  font-family: 'Barlow', sans-serif;
+  font-size: 18px;
+  color: var(--text-soft);
   line-height: 1.6;
   margin: 0 0 18px;
+  letter-spacing: 0.02em;
 }
 
 /* Event callout box */
@@ -119,12 +128,12 @@
   padding: 14px 16px;
   border-radius: 12px;
   margin-bottom: 16px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(192, 132, 252, 0.05);
+  border: 1px solid rgba(192, 132, 252, 0.18);
 }
 
 .sr-event-box--blocked { border-color: rgba(248, 113, 113, 0.15); }
-.sr-event-box--poor    { border-color: rgba(251, 191, 36,  0.15); }
+.sr-event-box--poor    { border-color: rgba(255, 209, 92,  0.15); }
 .sr-event-box--fair    { border-color: rgba(103, 232, 249, 0.15); }
 .sr-event-box--good    { border-color: rgba(192, 132, 252, 0.2);  }
 
@@ -137,10 +146,12 @@
 }
 
 .sr-event-text {
-  font-size: 13px;
-  color: rgba(200, 220, 255, 0.8);
+  font-family: 'Barlow', sans-serif;
+  font-size: 18px;
+  color: var(--text-mid);
   line-height: 1.55;
   flex: 1;
+  letter-spacing: 0.02em;
 }
 
 .sr-scope-tag {
@@ -151,18 +162,21 @@
 
 /* Tip row */
 .sr-tip {
-  font-size: 12.5px;
-  color: rgba(168, 212, 245, 0.5);
+  font-family: 'Barlow', sans-serif;
+  font-size: 18px;
+  color: var(--text-mid);
   display: flex;
   gap: 8px;
   align-items: baseline;
+  letter-spacing: 0.02em;
 }
 
 .sr-tip-label {
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   font-family: 'Barlow Condensed', sans-serif;
-  color: rgba(168, 212, 245, 0.3);
+  font-size: 16px;
+  font-weight: 200;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--purple-bright);
   flex-shrink: 0;
 }

@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect } from 'react';
-import './BorderGlow.css';
+import './Borderglow.css';
 
 function parseHSL(hslStr) {
   const match = hslStr.match(/([\d.]+)\s*([\d.]+)%?\s*([\d.]+)%?/);
