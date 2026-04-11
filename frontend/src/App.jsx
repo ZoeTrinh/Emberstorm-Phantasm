@@ -1,192 +1,161 @@
-import { useState } from 'react'
 import '@google/model-viewer'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
+import { useState, useEffect, useRef } from 'react'
+import { Routes, Route } from 'react-router-dom'
+import WeatherTracker from './components/WeatherTracker.jsx'
+import StarBackground from './components/StarBackground'
 import './App.css'
+import Navbar from './components/Navbar'
+import Aurora from './components/Aurora'
+import Login from './pages/Login'
+import Register from './pages/Register'
+import CelestialWeather from './components/CelestialWeather'
+import SkyRecommendation from './components/SkyRecommendation'
 
-function App() {
-  const [count, setCount] = useState(0)
+function MainApp() {
+  const [hourlyWeather, setHourlyWeather]   = useState(null)
+  const [heroEvent, setHeroEvent]           = useState(null)
+  const [gpsLocation, setGpsLocation]       = useState(null)
+  const [locationDenied, setLocationDenied] = useState(false)
+  const [loginModal, setLoginModal]         = useState(false)
+  const [registerModal, setRegisterModal]   = useState(false)
+
+  const forecastRef       = useRef(null)
+  const celestialRef      = useRef(null)
+  const recommendationRef = useRef(null)
+
+  function askLocation() {
+    if (!navigator.geolocation) return
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGpsLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+        setLocationDenied(false)
+      },
+      () => setLocationDenied(true),
+      { enableHighAccuracy: true, timeout: 12000 }
+    )
+  }
+
+  useEffect(() => { askLocation() }, [])
+
+  function handleViewSkyClick() {
+    askLocation()
+    forecastRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  function handleLocationGranted(loc) {
+    setGpsLocation(loc)
+  }
 
   return (
     <>
-      {/*shooting star*/}
+      <StarBackground />
 
-       {/* NAVBAR */}
-      <nav className="navbar">
-        <div className="nav-logo">Product name</div>
-        <ul className="nav-links">
-          <li><a href="#">Info</a></li>
-          <li><a href="#">Satellites selector</a></li>
-          <li><a href="#">Drag model</a></li>
-          <li><a href="#">Contact</a></li>
-        </ul>
-      </nav>
+      <Navbar
+        onForecastClick={()       => forecastRef.current?.scrollIntoView({ behavior: 'smooth' })}
+        onCelestialClick={()      => celestialRef.current?.scrollIntoView({ behavior: 'smooth' })}
+        onRecommendationClick={() => recommendationRef.current?.scrollIntoView({ behavior: 'smooth' })}
+        onLoginClick={()          => setLoginModal(true)}
+        onRegisterClick={()       => setRegisterModal(true)}
+      />
 
-      {/* DASHBOARD */}
-      <section id="Dashboard" className="section grid">
-        <div className="glass card">
-          <h2>Temperature</h2>
-          <p>17C</p>
+      {loginModal && (
+        <Login isModal onClose={() => { setLoginModal(false); askLocation() }} />
+      )}
+      {registerModal && (
+        <Register isModal onClose={() => { setRegisterModal(false); askLocation() }} />
+      )}
+
+      {/* titlePanel: background image, aurora, floating title, ghost spacers, button */}
+      <div className="titlePanel">
+        {/* Aurora — absolutely fills panel, above scrim, below title */}
+        <Aurora
+          colorStops={['#67e8f9', '#c084fc', '#38bdf8']}
+          amplitude={1.1}
+          blend={0.6}
+          speed={0.4}
+        />
+        {/* Visible title — absolutely overlaid, above aurora */}
+        <div className="floatingTitle">
+          <h1>Should you look up<br />the sky today?</h1>
+          <p>Celestial phenomena calendar using space weather</p>
         </div>
-
-        <div className="glass card">
-          <h2>Humidity</h2>
-          <p>wenfoiw</p>
+        {/* Invisible ghost spacers — push button into correct position */}
+        <h1 className="titlePanel-ghost">Should you look up<br />the sky today?</h1>
+        <p className="titlePanel-ghost">Celestial phenomena calendar using space weather</p>
+        {/* Button */}
+        <div className="galaxy-button">
+          <button className="space-button" onClick={handleViewSkyClick}>
+            <span className="backdrop" />
+            <span className="galaxy" />
+            <label className="text">View your sky</label>
+          </button>
+          {locationDenied && (
+            <div className="location-denied-hint">
+              Location access was denied — click above to try again
+            </div>
+          )}
         </div>
+      </div>
 
-        <div className="glass card">
-          <h2>Live Data</h2>
-          <p>Real-time solar weather</p>
-        </div>
-      </section>
-
-      {/* MODEL VIEWER */}
-      <section id="model" className="section">
-        <div className="glass card">
-          <h2>Solar Model</h2>
-          <model-viewer
-            src="/Sun.glb"
-            camera-controls
-            auto-rotate
-            style={{ width: "100%", height: "400px" }}
+      <section id="dashboard" className="section" ref={forecastRef}>
+        <div className="glass card section-inner">
+          <WeatherTracker
+            onWeatherLoad={setHourlyWeather}
+            autoLocation={gpsLocation}
+            onLocationGranted={handleLocationGranted}
           />
         </div>
       </section>
 
-      <section id="center">
+      <section id="celestial" className="section" ref={celestialRef}>
+        <div className="glass card section-inner">
+          <CelestialWeather
+            hourlyWeather={hourlyWeather}
+            autoLocation={gpsLocation}
+            onHeroEvent={setHeroEvent}
+          />
+        </div>
+      </section>
 
-        <section className="dashboard">
-          <h1>Dashboard</h1>
+      {/* Recommendation banner — only appears once both data sources are ready */}
+      {(hourlyWeather || heroEvent) && (
+        <section id="recommendation" className="section" ref={recommendationRef}>
+          <div className="glass card section-inner">
+            <SkyRecommendation
+              hourlyWeather={hourlyWeather}
+              heroEvent={heroEvent}
+            />
+          </div>
         </section>
+      )}
 
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-          <h2>Weather Panel</h2>
+      <footer id="contact" className="footer-bar">
+        <div className="footer-inner">
+          <div className="footer-brand">
+            <span className="footer-logo">✦ CelestSky</span>
+            <span className="footer-tagline">Your window to the cosmos</span>
+          </div>
+          <div className="footer-links">
+            <a href="#" onClick={(e) => { e.preventDefault(); forecastRef.current?.scrollIntoView({ behavior: 'smooth' }) }}>Weather Forecast</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); celestialRef.current?.scrollIntoView({ behavior: 'smooth' }) }}>Celestial Events</a>
+          </div>
+          <div className="footer-copy">
+            <span>By the Emberstorm Phantasm</span>
+            <span>Built with React + Vite</span>
+          </div>
         </div>
-
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-            testtttt
-          </p>
-        </div>
-
-        <div className="galaxy-button">
-          <button class="space-button">
-            <span class="backdrop"></span>
-            <span class="galaxy"></span>
-            <label class="text">Space</label>
-          </button>
-          <div class="bodydrop"></div>
-        </div>  
-
-      </section>
-
-      <div className="ticks"></div>
-
-      <model-viewer
-        src="/SpaceXStarlink.glb"
-        camera-controls
-        style={{ width: "100%", height: "500px" }}
-      />
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-
-      {/* FOOTER */}
-      <div>
-        <footer id="contact" className="footer glass">
-          <h3>By the Emberstorm Phantasm</h3>
-          <p>Built with React + Vite</p>
-        </footer>
-      </div>
-
+      </footer>
     </>
+  )
+}
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/login"    element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/*"        element={<MainApp />} />
+    </Routes>
   )
 }
 
