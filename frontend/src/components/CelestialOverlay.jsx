@@ -8,7 +8,7 @@ export default function CelestialOverlay() {
         inset: 0,
         /* z-index 1: above the hero background image (z-index 0),
            below all text and card content (z-index 3+) */
-        zIndex: 1,
+        zIndex: 10,
         pointerEvents: 'none',
         opacity: 0.7,
         WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 50%, transparent 85%)',

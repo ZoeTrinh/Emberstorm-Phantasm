@@ -3,8 +3,8 @@ import { useState, useEffect, useRef } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import WeatherTracker from './components/WeatherTracker.jsx'
 import StarBackground from './components/StarBackground'
-import CelestialOverlay from './components/CelestialOverlay.jsx'
 import './App.css'
+import Aurora from './components/Aurora'
 import Navbar from './components/Navbar'
 import Login from './pages/Login'
 import Register from './pages/Register'
@@ -19,7 +19,6 @@ function MainApp() {
 
   const forecastRef  = useRef(null)
   const celestialRef = useRef(null)
-
   function askLocation() {
     if (!navigator.geolocation) return
     navigator.geolocation.getCurrentPosition(
@@ -32,7 +31,6 @@ function MainApp() {
     )
   }
 
-  /* Ask for location immediately on mount */
   useEffect(() => { askLocation() }, [])
 
   function handleViewSkyClick() {
@@ -48,13 +46,13 @@ function MainApp() {
     <>
       {/* Layer order (back to front):
           -1  StarBackground  (fixed, stars)
-           0  CelestialOverlay (fixed, aurora WebGL — always visible, behind everything)
-           1+ page content (navbar, hero, cards) */}
+           0  CelestialOverlay (fixed, aurora WebGL)
+           1  floatingTitle (fixed, above aurora, pointer-events: none)
+           2  Navbar (sticky)
+           3  titlePanel (background image + button)
+           4+ page sections */}
 
       <StarBackground />
-
-      {/* Aurora always on — pure ambient background, no trigger needed */}
-      <CelestialOverlay />
 
       <Navbar
         onForecastClick={()  => forecastRef.current?.scrollIntoView({ behavior: 'smooth' })}
@@ -70,9 +68,23 @@ function MainApp() {
         <Register isModal onClose={() => { setRegisterModal(false); askLocation() }} />
       )}
 
+      {/* titlePanel: background image, aurora, title, ghost spacers, button */}
       <div className="titlePanel">
-        <h1>Should you look up<br />the sky today?</h1>
-        <p>Celestial phenomena calendar using space weather</p>
+        {/* Aurora — absolutely fills panel, behind title */}
+        <Aurora
+          colorStops={['#67e8f9', '#c084fc', '#38bdf8']}
+          amplitude={1.1}
+          blend={0.6}
+          speed={0.4}
+        />
+        {/* Title — absolutely positioned inside panel, scrolls away with it */}
+        <div className="floatingTitle">
+          <h1>Should you look up<br />the sky today?</h1>
+          <p>Celestial phenomena calendar using space weather</p>
+        </div>
+        {/* Invisible placeholders — same text as floatingTitle, push button into correct position */}
+        <h1 className="titlePanel-ghost">Should you look up<br />the sky today?</h1>
+        <p className="titlePanel-ghost">Celestial phenomena calendar using space weather</p>
         <div className="galaxy-button">
           <button className="space-button" onClick={handleViewSkyClick}>
             <span className="backdrop" />

@@ -25,7 +25,7 @@
 
 .section {
   position: relative;
-  z-index: 3;
+  z-index: 4;
   padding: var(--section-gap) 24px;
   width: 100%;
   box-sizing: border-box;
@@ -38,11 +38,43 @@
   padding: 32px 36px;
 }
 
-/* Title panel */
+/* Floating title — absolute inside titlePanel, scrolls away with the panel */
+.floatingTitle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0 80px 120px;
+  box-sizing: border-box;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.floatingTitle h1 {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: clamp(48px, 6vw, 88px);
+  font-weight: 200;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--text-bright);
+  margin: 0 0 16px;
+  text-shadow: 0 2px 40px rgba(168,85,247,0.4);
+}
+
+.floatingTitle p {
+  font-family: 'Barlow', sans-serif;
+  font-size: clamp(20px, 2vw, 26px);
+  color: var(--gold);
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+/* Title panel — background image + button only, no text */
 .titlePanel {
   position: relative;
-  /* z-index 0: background image stays BELOW the aurora (z-index 1) */
-  z-index: 0;
+  z-index: 3;
   width: 100%;
   min-height: 700px;
   background-image: url('./assets/TitleBack.jpg');
@@ -62,40 +94,49 @@
   content: '';
   position: absolute;
   inset: 0;
-  /* Scrim sits above the aurora (z-index 1) */
-  z-index: 2;
+  z-index: 0;
   background: linear-gradient(120deg, rgba(4,6,20,0.75) 0%, rgba(88,28,135,0.18) 60%, transparent 100%);
   pointer-events: none;
 }
 
-/* Title text elements float above the aurora and the scrim */
-.titlePanel h1,
-.titlePanel p,
+/* Aurora canvas sits above scrim, below title */
+.aurora-container {
+  position: absolute !important;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+/* Button sits above the scrim */
 .titlePanel .galaxy-button,
 .titlePanel .location-denied-hint {
   position: relative;
-  z-index: 3;
+  z-index: 2;
 }
 
-.titlePanel h1 {
-  position: relative;
+/* Ghost placeholders — invisible, just hold space so button aligns with the floating title */
+.titlePanel-ghost {
+  opacity: 0;
+  pointer-events: none;
+  user-select: none;
+  margin: 0;
+}
+
+.titlePanel h1.titlePanel-ghost {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: clamp(48px, 6vw, 88px);
   font-weight: 200;
   line-height: 1.05;
   letter-spacing: -0.02em;
-  color: var(--text-bright);
   margin: 0 0 16px;
-  text-shadow: 0 2px 40px rgba(168,85,247,0.4);
 }
 
-.titlePanel p {
-  position: relative;
+.titlePanel p.titlePanel-ghost {
   font-family: 'Barlow', sans-serif;
   font-size: clamp(20px, 2vw, 26px);
-  color: var(--purple-dim);
   letter-spacing: 0.06em;
-  margin-bottom: 8px;
+  margin-bottom: 36px;
 }
 
 .location-denied-hint {
@@ -107,7 +148,6 @@
 }
 
 /* Navbar */
-/* BorderGlow wrapper gets sticky so the glow effect stays fixed */
 .navbar-glow-wrapper.border-glow-card {
   position: sticky;
   top: 0;
@@ -175,7 +215,7 @@
 /* Space button */
 .galaxy-button {
   position: relative;
-  margin-top: 36px;
+  margin-top: 100px;
 }
 
 .space-button {
@@ -276,7 +316,7 @@
 /* Footer */
 .footer-bar {
   position: relative;
-  z-index: 3;
+  z-index: 4;
   margin: 60px 24px 32px;
   border-radius: 20px;
   background: rgba(8, 4, 28, 0.55);
