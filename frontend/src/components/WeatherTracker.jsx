@@ -176,8 +176,8 @@ function SunBar({ sunrise, sunset }) {
         <div className="wt-sun-dot" style={{ left: `${pct}%` }} />
       </div>
       <div className="wt-sun-times">
-        <span>🌅 {formatShortTime(sunrise)}</span>
-        <span>🌇 {formatShortTime(sunset)}</span>
+        <span>Sunrise {formatShortTime(sunrise)}</span>
+        <span>Sunset {formatShortTime(sunset)}</span>
       </div>
     </>
   );

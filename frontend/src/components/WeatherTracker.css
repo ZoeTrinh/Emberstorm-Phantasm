@@ -181,7 +181,7 @@
   font-weight: 400;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: var(--text-dim);
+  color: var(--text);
   margin-bottom: 10px;
 }
 
@@ -384,7 +384,7 @@
   justify-content: space-between;
   font-size: 18px;
   font-weight: 300;
-  color: var(--text-dim);
+  color: var(--text);
 }
 
 /* Hourly strip */
