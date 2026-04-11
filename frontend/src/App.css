@@ -3,12 +3,12 @@
   --purple-mid:    #a855f7;
   --purple-dim:    rgba(192, 132, 252, 0.55);
   --cyan:          #67e8f9;
-  --cyan-dim:      rgba(103, 232, 249, 0.45);
-  --gold:          #fbbf24;
+  --cyan-dim:      rgba(120, 239, 255, 0.682);
+  --gold:          #ffd15c;
   --text-bright:   #f0f4ff;
   --text-mid:      #cbd5f5;
   --text-soft:     rgba(203, 213, 245, 0.75);
-  --glass-bg:      rgba(8, 14, 36, 0.30);
+  --glass-bg:      rgba(8, 14, 36, 0);
   --glass-border:  rgba(192, 132, 252, 0.18);
   --glass-shadow:  0 0 60px rgba(168, 85, 247, 0.12);
   --section-gap:   48px;
@@ -20,7 +20,7 @@
   border-radius: 24px;
   border: 1px solid var(--glass-border);
   box-shadow: var(--glass-shadow);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(1px);
 }
 
 .section {
@@ -66,7 +66,7 @@
 .floatingTitle p {
   font-family: 'Barlow', sans-serif;
   font-size: clamp(20px, 2vw, 26px);
-  color: var(--gold);
+  color: var(--text-soft);
   letter-spacing: 0.06em;
   margin: 0;
 }
