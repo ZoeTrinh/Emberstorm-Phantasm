@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getUserLocation } from "../utils/Gps";
 import "./WeatherTracker.css";
 
@@ -77,8 +77,13 @@ function SunBar({ sunrise, sunset }) {
   const pct = Math.max(0, Math.min(1, (Date.now() - new Date(sunrise).getTime()) / (new Date(sunset).getTime() - new Date(sunrise).getTime()))) * 100;
   return (
     <>
-      <div className="wt-sun-bar"><div className="wt-sun-dot" style={{ left: `${pct}%` }} /></div>
-      <div className="wt-sun-times"><span>🌅 {formatShortTime(sunrise)}</span><span>🌇 {formatShortTime(sunset)}</span></div>
+      <div className="wt-sun-bar">
+        <div className="wt-sun-dot" style={{ left: `${pct}%` }} />
+      </div>
+      <div className="wt-sun-times">
+        <span>Sunrise {formatShortTime(sunrise)}</span>
+        <span>Sunset {formatShortTime(sunset)}</span>
+      </div>
     </>
   );
 }
@@ -88,6 +93,124 @@ function tempSpectrumColor(temp, minTemp, maxTemp) {
   return `rgb(${Math.round(40 + t * 215)}, ${Math.round(100 - t * 60)}, ${Math.round(220 - t * 190)})`;
 }
 
+/* Main component */
+export default function WeatherTracker() {
+  const [weather, setWeather] = useState(null);
+  const [rawForecast, setRawForecast] = useState(null); // stores the full API response
+  const [locationName, setLocationName] = useState("");
+  const [query, setQuery] = useState("");
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [now, setNow] = useState(new Date()); // live clock used to refresh hourly cards
+
+  /* 
+  Live clock:
+  updates every minute so the hourly forecast can re-align itself
+  when a new hour starts.
+  */
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setNow(new Date());
+    }, 60 * 1000); // refresh every minute
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+    /* 
+    Build weather state from API response.
+    Important: we store the raw forecast so hourly cards can be recalculated
+    later as time passes, instead of being frozen at fetch time.
+  */
+  function buildWeatherState(data, locationLabel) {
+    // Save the raw API response for live hourly recalculation
+    setRawForecast(data);
+
+    const current = {
+      temp: Math.round(data.current.temperature_2m),
+      humidity: data.current.relative_humidity_2m,
+      wind: Math.round(data.current.wind_speed_10m),
+      cloud: data.current.cloud_cover,
+      rain: data.current.rain,
+      precipitation: data.current.precipitation,
+      isDay: data.current.is_day,
+      high: Math.round(data.daily.temperature_2m_max[0]),
+      low: Math.round(data.daily.temperature_2m_min[0]),
+    };
+
+    const daily = data.daily.time.map((d, i) => ({
+      date: d,
+      high: Math.round(data.daily.temperature_2m_max[i]),
+      low: Math.round(data.daily.temperature_2m_min[i]),
+      cloud: data.daily.cloud_cover_mean[i],
+      wind: Math.round(data.daily.wind_speed_10m_max[i]),
+      sunrise: data.daily.sunrise[i],
+      sunset: data.daily.sunset[i],
+      uv: data.daily.uv_index_max[i],
+      rain: data.daily.rain_sum[i],
+      rainChance: data.daily.precipitation_probability_max[i],
+    }));
+
+    setLocationName(locationLabel);
+
+    // We leave hourly empty here because it will be recalculated live below.
+    setWeather({
+      current,
+      daily,
+    });
+  }
+
+  /* 
+  Recalculate the visible 24-hour forecast every time:
+  - the raw API data changes, or
+  - the current time changes
+*/
+const liveHourly = useMemo(() => {
+  if (!rawForecast) return [];
+
+  // Use the API's utc_offset_seconds to find the correct local time for the
+  // forecast location, regardless of the browser's own timezone.
+  const utcOffsetMs = (rawForecast.utc_offset_seconds ?? 0) * 1000;
+  const localNow = new Date(now.getTime() + utcOffsetMs);
+
+  // Build a local hour key like "2026-04-11T14" using UTC math on the shifted time
+  const currentHourKey = localNow.toISOString().slice(0, 13);
+
+  let hourIndex = rawForecast.hourly.time.findIndex((t) =>
+    t.startsWith(currentHourKey)
+  );
+
+  // Fallback: if exact hour is not found, use the first future local hour
+  if (hourIndex === -1) {
+    hourIndex = rawForecast.hourly.time.findIndex(
+      (t) => new Date(t).getTime() + utcOffsetMs >= localNow.getTime()
+    );
+  }
+
+  if (hourIndex === -1) hourIndex = 0;
+
+  return rawForecast.hourly.time
+    .slice(hourIndex, hourIndex + 24)
+    .map((t, i) => ({
+      time: t,
+      temp: Math.round(rawForecast.hourly.temperature_2m[hourIndex + i]),
+      humidity: rawForecast.hourly.relative_humidity_2m[hourIndex + i],
+      cloud: rawForecast.hourly.cloud_cover[hourIndex + i],
+      visibility: rawForecast.hourly.visibility[hourIndex + i],
+      wind: Math.round(rawForecast.hourly.wind_speed_10m[hourIndex + i]),
+      rain: rawForecast.hourly.rain[hourIndex + i],
+      precipitation: rawForecast.hourly.precipitation[hourIndex + i],
+      isNow: i === 0,
+    }))
+    .filter((item) => item.time); // safety in case the array ends
+}, [rawForecast, now]);
+
+/* 
+  Use the first live hourly item as the best match for "right now"
+  for hour-based fields like visibility.
+*/
+const liveCurrentVisibility = liveHourly[0]?.visibility ?? null;
+
+  /* Use browser geolocation */
 export default function WeatherTracker({ onWeatherLoad, autoLocation, onLocationGranted }) {
   const [weather, setWeather]           = useState(null);
   const [locationName, setLocationName] = useState("");
@@ -214,7 +337,9 @@ export default function WeatherTracker({ onWeatherLoad, autoLocation, onLocation
               <div className="wt-hero-meta-grid">
                 <div className="wt-hero-meta-item">💨 Wind <span>{weather.current.wind} km/h</span></div>
                 <div className="wt-hero-meta-item">💧 Humidity <span>{weather.current.humidity}%</span></div>
-                <div className="wt-hero-meta-item">👁 Visibility <span>{formatVisibility(weather.current.visibility)}</span></div>
+                <div className="wt-hero-meta-item">
+  👁 Visibility <span>{formatVisibility(liveCurrentVisibility)}</span>
+</div>
                 <div className="wt-hero-meta-item">🌧 Rain <span>{weather.current.rain} mm</span></div>
                 <div className="wt-hero-meta-item">☁️ Cloud <span>{weather.current.cloud}%</span></div>
                 <div className="wt-hero-meta-item">🌡 Precip <span>{weather.current.precipitation} mm</span></div>
@@ -236,8 +361,12 @@ export default function WeatherTracker({ onWeatherLoad, autoLocation, onLocation
               </div>
               <div className="wt-card">
                 <div className="wt-card-label">Visibility</div>
-                <div className="wt-stat-value wt-stat-value--sm">{formatVisibility(weather.current.visibility)}</div>
-                <div className="wt-stat-note">{weather.current.visibility >= 10000 ? "Clear" : weather.current.visibility >= 5000 ? "Moderate" : "Low"}</div>
+                <div className="wt-stat-value" style={{ fontSize: 28 }}>
+                  {formatVisibility(liveCurrentVisibility)}
+                </div>
+                <div className="wt-stat-note">
+                  {liveCurrentVisibility >= 10000 ? "Clear" : liveCurrentVisibility >= 5000 ? "Moderate" : "Low"}
+                </div>
               </div>
               <div className="wt-card">
                 <div className="wt-card-label">Rain Today</div>
@@ -278,11 +407,11 @@ export default function WeatherTracker({ onWeatherLoad, autoLocation, onLocation
             <div className="wt-card">
               <div className="wt-card-label">Next 24 Hours</div>
               <div className="wt-hourly-scroll">
-                {weather.hourly.map((h, i) => {
+                {liveHourly.map((h) => {
                   const { icon } = getSkyInfo(h.cloud);
                   return (
-                    <div key={i} className={`wt-hour-cell${i === 0 ? " wt-hour-now" : ""}`}>
-                      <div className="wt-hour-label">{i === 0 ? "Now" : formatHour(h.time)}</div>
+                    <div key={h.time} className={`wt-hour-cell${h.isNow ? " wt-hour-now" : ""}`}>
+                      <div className="wt-hour-label">{h.isNow ? "Now" : formatHour(h.time)}</div>
                       <div className="wt-hour-icon">{icon}</div>
                       <div className="wt-hour-temp">{h.temp}°</div>
                       <div className="wt-hour-meta">{h.cloud}% ☁</div>

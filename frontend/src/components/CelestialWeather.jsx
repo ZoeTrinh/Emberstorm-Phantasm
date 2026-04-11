@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { getUserLocation } from "../utils/Gps";
 import "./CelestialWeather.css";
+import { calculateConjunctions } from '../utils/ConjunctionCalculator';
 
 const NASA_KEY = import.meta.env.VITE_NASA_API_KEY || "DEMO_KEY";
 
@@ -36,15 +37,6 @@ const METEOR_SHOWERS = [
   { name: "Geminids",       peak: { m: 12, d: 14 }, rate: 150, parent: "3200 Phaethon",       needsTelescope: false },
   { name: "Ursids",         peak: { m: 12, d: 22 }, rate: 10,  parent: "Comet Tuttle",        needsTelescope: false },
 ];
-
-const CONJUNCTIONS = [
-  { name: "Venus–Jupiter Conjunction",   date: "2025-08-12", objects: "Venus & Jupiter",   needsTelescope: true, tip: "Less than 0.5° apart. Binoculars reveal both discs." },
-  { name: "Mars–Saturn Conjunction",     date: "2025-10-06", objects: "Mars & Saturn",     needsTelescope: true, tip: "Telescope recommended to resolve Saturn's rings alongside Mars." },
-  { name: "Venus–Saturn Conjunction",    date: "2025-11-02", objects: "Venus & Saturn",    needsTelescope: true, tip: "Striking pair low in the west. Small telescope ideal." },
-  { name: "Jupiter–Neptune Conjunction", date: "2026-04-07", objects: "Jupiter & Neptune", needsTelescope: true, tip: "Neptune invisible to naked eye — binoculars or telescope required." },
-];
-
-function daysUntilDate(dateStr) { return Math.round((new Date(dateStr + "T12:00:00") - new Date()) / 86400000); }
 
 function daysUntilPeak(peak) {
   const now      = new Date();
@@ -88,6 +80,12 @@ function getUpcomingEclipses() {
 function pickHeroEvent(data) {
   const activeShower = data.showers.find((s) => s.daysUntil <= 3);
   if (activeShower) return {
+    title:          activeShower.name,
+    subtitle:       `Meteor Shower — peaks ${activeShower.peak.d}/${activeShower.peak.m}`,
+    funFact:        `Up to ${activeShower.rate} meteors per hour at peak. Parent body: ${activeShower.parent}. Best viewed after midnight with dark-adapted eyes — no telescope needed, just lie back and look up.`,
+    searchQuery:    activeShower.name + " meteor shower",
+    needsTelescope: false,
+    isDay:          false,
     title:    activeShower.name + " Meteor Shower",
     subtitle: `Peaks ${activeShower.peak.d}/${activeShower.peak.m}`,
     funFact:  `Up to ${activeShower.rate} meteors/hour at peak. Parent: ${activeShower.parent}. No telescope needed — just lie back and look up.`,
@@ -96,6 +94,33 @@ function pickHeroEvent(data) {
   };
   const nextEclipse = data.eclipses[0];
   if (nextEclipse && nextEclipse.daysAway <= 30) return {
+    title:          `${nextEclipse.type} Eclipse`,
+    subtitle:       `${nextEclipse.daysAway} days away · ${nextEclipse.region}`,
+    funFact:        nextEclipse.isSolar
+      ? `Totality lasts ${nextEclipse.duration}. The corona — the Sun's outer atmosphere — becomes visible to the naked eye only during total solar eclipses. Never look directly at the Sun without ISO 12312-2 certified eclipse glasses.`
+      : `The Moon turns a deep red during totality — hence "blood moon." Earth's atmosphere scatters blue light and bends red light onto the lunar surface. Safe to view with naked eyes for the full ${nextEclipse.duration}.`,
+    searchQuery:    nextEclipse.type + " eclipse NASA",
+    needsTelescope: nextEclipse.isSolar,
+    isDay:          nextEclipse.isSolar,
+  };
+
+    const nextConj = data.conjunctions.find((c) => c.daysAway >= 0 && c.daysAway <= 14);
+    if (nextConj) return {
+    title:          nextConj.name,
+    subtitle:       nextConj.daysAway === 0 ? "Happening tonight!" : `In ${nextConj.daysAway} days`,
+    funFact:        nextConj.tip,
+    searchQuery:    `${nextConj.objects} planet conjunction astronomy`,  // ← was just "conjunction night sky"
+    needsTelescope: nextConj.needsTelescope,
+    isDay:          false,
+    };
+
+  if (data.moon.illumination >= 95) return {
+    title:          "Full Moon",
+    subtitle:       `${data.moon.illumination}% illuminated tonight`,
+    funFact:        "A full moon is up to 14× brighter than a half moon — a phenomenon called the opposition surge, caused by the absence of shadows when sunlight hits the lunar surface head-on.",
+    searchQuery:    "full moon NASA photography",
+    needsTelescope: false,
+    isDay:          false,
     title:    `${nextEclipse.type} Eclipse`,
     subtitle: `${nextEclipse.daysAway} days away · ${nextEclipse.region}`,
     funFact:  nextEclipse.isSolar
@@ -120,6 +145,12 @@ function pickHeroEvent(data) {
     needsTelescope: false, isDay: false,
   };
   if (data.kp >= 5) return {
+    title:          "Geomagnetic Storm",
+    subtitle:       `Kp ${data.kp} — aurora possible tonight`,
+    funFact:        "Green aurora forms when solar particles excite oxygen at ~100 km altitude. Red aurora comes from oxygen above 200 km. Purple and blue hues come from nitrogen — look toward the magnetic pole after midnight.",
+    searchQuery:    "aurora borealis NASA",
+    needsTelescope: false,
+    isDay:          false,
     title:    "Geomagnetic Storm",
     subtitle: `Kp ${data.kp} — aurora possible tonight`,
     funFact:  "Green aurora forms when solar particles excite oxygen at ~100 km altitude. Red aurora comes from oxygen above 200 km. Purple and blue hues come from nitrogen.",
@@ -178,15 +209,27 @@ async function fetchCloseApproaches() {
 
 async function fetchNasaImage(query) {
   try {
+    const SATURN_FALLBACK = {
+      url:    "https://assets.science.nasa.gov/dynamicimage/assets/science/psd/solar/2023/09/p/i/a/1/PIA18335.jpg",
+      title:  "Saturn",
+      credit: "NASA/JPL-Caltech",
+    };
+
     const res  = await fetch(`https://images-api.nasa.gov/search?q=${encodeURIComponent(query)}&media_type=image&page_size=8`);
-    if (!res.ok) return null;
+    if (!res.ok) return SATURN_FALLBACK;
     const data = await res.json();
     for (const item of (data.collection?.items ?? [])) {
       const link = item.links?.find((l) => l.rel === "preview");
       if (link) return { url: link.href, title: item.data?.[0]?.title ?? query, credit: item.data?.[0]?.center ?? "NASA" };
     }
-    return null;
-  } catch { return null; }
+    return SATURN_FALLBACK;
+  } catch { 
+    return {
+      url:    "https://assets.science.nasa.gov/dynamicimage/assets/science/psd/solar/2023/09/p/i/a/1/PIA18335.jpg",
+      title:  "Saturn",
+      credit: "NASA/JPL-Caltech",
+    };
+  }
 }
 
 function MoonDisc({ phase }) {
@@ -253,18 +296,59 @@ function ViewingBanner({ warning }) {
   );
 }
 
-function HeroPanel({ hero, image, cloudWarning }) {
+/* ─── Hero panel ─────────────────────────────────────────────── */
+function HeroPanel({ hero, image, cloudWarning, closestEvent, timeLeft }) {
   if (!hero) return null;
   const blocked = cloudWarning?.level === "blocked";
   return (
     <div className="cw-hero">
-      <div className="cw-hero-bg" style={image ? { backgroundImage: `url(${image.url})` } : {}} />
+      <div className="cw-hero-bg" style={image ? { 
+        backgroundImage:    `url(${image.url})`,
+        backgroundSize:     "200%",
+        backgroundPosition: "30% 20%",
+      } : {}} />
       <div className="cw-hero-overlay" />
       <div className="cw-hero-content">
         <div className="cw-hero-eyebrow">✦ {hero.isDay ? "Event of the Day" : "Event of the Night"}</div>
         <h2 className="cw-hero-title">{hero.title}</h2>
         <div className="cw-hero-subtitle">{hero.subtitle}</div>
-        {hero.needsTelescope && <div className="cw-telescope-badge">🔭 Telescope or binoculars recommended</div>}
+
+                {closestEvent && timeLeft && (
+          <div style={{ marginTop: 12 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(168,212,245,0.45)", marginBottom: 8 }}>
+              Live countdown
+            </div>
+
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[
+                ["Days", timeLeft.days],
+                ["Hours", timeLeft.hours],
+                ["Min", timeLeft.minutes],
+                ["Sec", timeLeft.seconds],
+              ].map(([label, value]) => (
+                <div
+                  key={label}
+                  style={{
+                    minWidth: 70,
+                    padding: "10px 12px",
+                    borderRadius: 12,
+                    background: "rgba(255,255,255,0.05)",
+                    border: "1px solid rgba(74,111,165,0.2)",
+                    textAlign: "center",
+                  }}
+                >
+                  <div style={{ fontSize: 24, fontWeight: 700, color: "#ffd54f" }}>{value}</div>
+                  <div style={{ fontSize: 11, color: "rgba(168,212,245,0.5)" }}>{label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {hero.needsTelescope && (
+          <div className="cw-telescope-badge">🔭 Telescope or binoculars recommended</div>
+        )}
+
         <ViewingBanner warning={cloudWarning} />
         {blocked && <div className="cw-hero-blocked-note">The event is still occurring — check again when skies clear.</div>}
         <div className="cw-hero-funfact">
@@ -277,7 +361,89 @@ function HeroPanel({ hero, image, cloudWarning }) {
   );
 }
 
-export default function CelestialWeather({ hourlyWeather = null, autoLocation, onHeroEvent }) {
+// Convert the nearest event into an exact Date object
+function getClosestPhenomenonDate(data) {
+  if (!data) return null;
+
+  const now = new Date();
+  const candidates = [];
+
+  // Meteor showers
+  for (const s of data.showers || []) {
+    let year = now.getFullYear();
+    let eventDate = new Date(year, s.peak.m - 1, s.peak.d, 22, 0, 0); // 10pm local time
+
+    if (eventDate < now) {
+      eventDate = new Date(year + 1, s.peak.m - 1, s.peak.d, 22, 0, 0);
+    }
+
+    candidates.push({
+      type: "Meteor Shower",
+      title: s.name,
+      date: eventDate,
+    });
+  }
+
+  // Eclipses
+  for (const e of data.eclipses || []) {
+    const eventDate = new Date(`${e.date}T12:00:00`); // midday placeholder
+    if (eventDate > now) {
+      candidates.push({
+        type: "Eclipse",
+        title: `${e.type} Eclipse`,
+        date: eventDate,
+      });
+    }
+  }
+
+  // Conjunctions
+  for (const c of data.conjunctions || []) {
+    if (c.daysAway >= 0) {
+      const eventDate = new Date();
+      eventDate.setDate(eventDate.getDate() + c.daysAway);
+      eventDate.setHours(21, 0, 0, 0); // 9pm local time
+
+      candidates.push({
+        type: "Conjunction",
+        title: c.objects || c.name,
+        date: eventDate,
+      });
+    }
+  }
+
+  candidates.sort((a, b) => a.date - b.date);
+  return candidates[0] || null;
+}
+
+// Break remaining time into parts for display
+function getTimeLeft(targetDate) {
+  if (!targetDate) return null;
+
+  const diff = targetDate - new Date();
+
+  if (diff <= 0) {
+    return {
+      expired: true,
+      days: 0,
+      hours: 0,
+      minutes: 0,
+      seconds: 0,
+    };
+  }
+
+  const totalSeconds = Math.floor(diff / 1000);
+
+  return {
+    expired: false,
+    days: Math.floor(totalSeconds / 86400),
+    hours: Math.floor((totalSeconds % 86400) / 3600),
+    minutes: Math.floor((totalSeconds % 3600) / 60),
+    seconds: totalSeconds % 60,
+  };
+}
+
+/* ─── Main ───────────────────────────────────────────────────── */
+export default function CelestialWeather({ hourlyWeather = null }) {
   const [data, setData]           = useState(null);
   const [hero, setHero]           = useState(null);
   const [heroImage, setHeroImage] = useState(null);
@@ -286,14 +452,36 @@ export default function CelestialWeather({ hourlyWeather = null, autoLocation, o
   const [locName, setLocName]     = useState("");
   const [autoLoaded, setAutoLoaded] = useState(false);
 
+  const [closestEvent, setClosestEvent] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(null);
+
   const cloudWarning = getViewingWarning(hourlyWeather);
+
+    useEffect(() => {
+    if (!closestEvent) return;
+
+    // Set the countdown immediately
+    setTimeLeft(getTimeLeft(closestEvent.date));
+
+    // Update every second
+    const intervalId = setInterval(() => {
+      setTimeLeft(getTimeLeft(closestEvent.date));
+    }, 1000);
+
+    // Clean up interval when event changes or component unmounts
+    return () => clearInterval(intervalId);
+  }, [closestEvent]);
 
   const load = useCallback(async (lat, lng, label = "") => {
     setLoading(true);
     setError(null);
     try {
-      const [storms, flares, neos] = await Promise.all([
-        fetchGeomagneticStorms(), fetchSolarFlares(), fetchCloseApproaches(),
+      // Run NASA fetches and conjunction calculation in parallel
+      const [storms, flares, neos, conjunctions] = await Promise.all([
+        fetchGeomagneticStorms(),
+        fetchSolarFlares(),
+        fetchCloseApproaches(),
+        Promise.resolve(calculateConjunctions(lat, lng, 90, 5)),
       ]);
       const latestKp = storms.length > 0
         ? Math.max(...storms.flatMap((s) => s.allKpIndex?.map((k) => parseFloat(k.kpIndex)) || [0]))
@@ -301,21 +489,24 @@ export default function CelestialWeather({ hourlyWeather = null, autoLocation, o
       const showers = METEOR_SHOWERS
         .map((s) => ({ ...s, daysUntil: daysUntilPeak(s.peak), activity: getShowerActivity(s.peak) }))
         .sort((a, b) => a.daysUntil - b.daysUntil);
-      const conjunctions = CONJUNCTIONS
-        .map((c) => ({ ...c, daysAway: daysUntilDate(c.date) }))
-        .filter((c) => c.daysAway >= 0)
-        .sort((a, b) => a.daysAway - b.daysAway);
+
       const assembled = {
         moon:         getMoonPhase(),
         aurora:       getAuroraProbability(lat),
         eclipses:     getUpcomingEclipses(),
-        showers, conjunctions,
+        showers,
+        conjunctions, // ✅ live-calculated from real GPS, already has daysAway sorted
         kp:           Math.round(latestKp),
         flare:        flares.length > 0 ? flares[flares.length - 1] : null,
         neos,
       };
       setData(assembled);
       setLocName(label);
+
+      // Find the earliest upcoming phenomenon for the live countdown
+      const nearest = getClosestPhenomenonDate(assembled);
+      setClosestEvent(nearest);
+
       const heroEvent = pickHeroEvent(assembled);
       setHero(heroEvent);
       onHeroEvent?.(heroEvent);
@@ -361,6 +552,7 @@ export default function CelestialWeather({ hourlyWeather = null, autoLocation, o
       </div>
 
       {error && <div className="cw-error">{error}</div>}
+
       {!data && cloudWarning && <ViewingBanner warning={cloudWarning} />}
 
       {!data && !loading && (
@@ -382,7 +574,8 @@ export default function CelestialWeather({ hourlyWeather = null, autoLocation, o
 
       {data && !loading && (
         <>
-          <HeroPanel hero={hero} image={heroImage} cloudWarning={cloudWarning} />
+          <HeroPanel hero={hero} image={heroImage} cloudWarning={cloudWarning} closestEvent={closestEvent} timeLeft={timeLeft}/>
+
           <div className="cw-grid">
 
             <div className="cw-card cw-card-moon">
@@ -473,20 +666,41 @@ export default function CelestialWeather({ hourlyWeather = null, autoLocation, o
             </div>
 
             <div className="cw-card cw-card-conjunctions">
-              <SectionTitle emoji="🔭" title="Planetary Conjunctions" subtitle="Telescope recommended" />
+              <SectionTitle
+                emoji="🔭"
+                title="Planetary Conjunctions"
+                subtitle={
+                  data.conjunctions.length === 0
+                    ? "None in next 90 days"
+                    : data.conjunctions[0]?.daysAway === 0
+                      ? "Happening tonight!"
+                      : `Next: ${data.conjunctions[0]?.objects} in ${data.conjunctions[0]?.daysAway}d`
+                }
+              />
               <div className="cw-conjunction-list">
-                {data.conjunctions.slice(0, 3).map((c) => (
-                  <div key={c.name} className="cw-conjunction-row">
-                    <div className="cw-conjunction-left">
-                      <div className="cw-conjunction-name">{c.objects}</div>
-                      <div className="cw-conjunction-tip">{c.tip}</div>
+                {data.conjunctions.length === 0 ? (
+                  <div className="cw-neo-empty">No conjunctions found in the next 90 days</div>
+                ) : (
+                  data.conjunctions.slice(0, 3).map((c) => (
+                    <div key={c.name} className="cw-conjunction-row">
+                      <div className="cw-conjunction-left">
+                        <div className="cw-conjunction-name">{c.objects}</div>
+                        <div className="cw-conjunction-tip">
+                          {c.tip}
+                          {c.visibleFromLocation === false && (
+                            <span style={{ color: "#ef9a9a", marginLeft: 6 }}>· Not visible from your location</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="cw-conjunction-right">
+                        <span className="cw-conjunction-days">
+                          {c.daysAway === 0 ? "Tonight!" : `${c.daysAway}d`}
+                        </span>
+                        {c.needsTelescope && <span className="cw-telescope-tag">🔭</span>}
+                      </div>
                     </div>
-                    <div className="cw-conjunction-right">
-                      <span className="cw-conjunction-days">{c.daysAway === 0 ? "Tonight!" : `${c.daysAway}d`}</span>
-                      <span className="cw-telescope-tag">🔭</span>
-                    </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
               {cloudWarning?.level === "blocked" && (
                 <ViewingBanner warning={{ level: "blocked", icon: "☁️", message: "Overcast — conjunctions not visible tonight." }} />
