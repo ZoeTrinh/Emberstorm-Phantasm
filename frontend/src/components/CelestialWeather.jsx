@@ -80,90 +80,62 @@ function getUpcomingEclipses() {
 function pickHeroEvent(data) {
   const activeShower = data.showers.find((s) => s.daysUntil <= 3);
   if (activeShower) return {
-    title:          activeShower.name,
-    subtitle:       `Meteor Shower — peaks ${activeShower.peak.d}/${activeShower.peak.m}`,
-    funFact:        `Up to ${activeShower.rate} meteors per hour at peak. Parent body: ${activeShower.parent}. Best viewed after midnight with dark-adapted eyes — no telescope needed, just lie back and look up.`,
+    title:          activeShower.name + " Meteor Shower",
+    subtitle:       `Peaks ${activeShower.peak.d}/${activeShower.peak.m}`,
+    funFact:        `Up to ${activeShower.rate} meteors/hour at peak. Parent: ${activeShower.parent}. No telescope needed — just lie back and look up.`,
     searchQuery:    activeShower.name + " meteor shower",
     needsTelescope: false,
     isDay:          false,
-    title:    activeShower.name + " Meteor Shower",
-    subtitle: `Peaks ${activeShower.peak.d}/${activeShower.peak.m}`,
-    funFact:  `Up to ${activeShower.rate} meteors/hour at peak. Parent: ${activeShower.parent}. No telescope needed — just lie back and look up.`,
-    searchQuery: activeShower.name + " meteor shower",
-    needsTelescope: false, isDay: false,
   };
+
   const nextEclipse = data.eclipses[0];
   if (nextEclipse && nextEclipse.daysAway <= 30) return {
     title:          `${nextEclipse.type} Eclipse`,
     subtitle:       `${nextEclipse.daysAway} days away · ${nextEclipse.region}`,
     funFact:        nextEclipse.isSolar
-      ? `Totality lasts ${nextEclipse.duration}. The corona — the Sun's outer atmosphere — becomes visible to the naked eye only during total solar eclipses. Never look directly at the Sun without ISO 12312-2 certified eclipse glasses.`
-      : `The Moon turns a deep red during totality — hence "blood moon." Earth's atmosphere scatters blue light and bends red light onto the lunar surface. Safe to view with naked eyes for the full ${nextEclipse.duration}.`,
+      ? `Totality lasts ${nextEclipse.duration}. The corona becomes visible only during total solar eclipses. Always use ISO 12312-2 certified eclipse glasses.`
+      : `The Moon turns deep red during totality — Earth's atmosphere scatters blue light and bends red light onto the lunar surface. Safe to view naked-eye.`,
     searchQuery:    nextEclipse.type + " eclipse NASA",
     needsTelescope: nextEclipse.isSolar,
     isDay:          nextEclipse.isSolar,
   };
 
-    const nextConj = data.conjunctions.find((c) => c.daysAway >= 0 && c.daysAway <= 14);
-    if (nextConj) return {
+  const nextConj = data.conjunctions.find((c) => c.daysAway >= 0 && c.daysAway <= 14);
+  if (nextConj) return {
     title:          nextConj.name,
     subtitle:       nextConj.daysAway === 0 ? "Happening tonight!" : `In ${nextConj.daysAway} days`,
     funFact:        nextConj.tip,
-    searchQuery:    `${nextConj.objects} planet conjunction astronomy`,  // ← was just "conjunction night sky"
+    searchQuery:    `${nextConj.objects} planet conjunction astronomy`,
     needsTelescope: nextConj.needsTelescope,
     isDay:          false,
-    };
+  };
 
   if (data.moon.illumination >= 95) return {
     title:          "Full Moon",
     subtitle:       `${data.moon.illumination}% illuminated tonight`,
-    funFact:        "A full moon is up to 14× brighter than a half moon — a phenomenon called the opposition surge, caused by the absence of shadows when sunlight hits the lunar surface head-on.",
+    funFact:        "A full moon is up to 14× brighter than a half moon — the opposition surge caused by the absence of shadows when sunlight hits the lunar surface head-on.",
     searchQuery:    "full moon NASA photography",
     needsTelescope: false,
     isDay:          false,
-    title:    `${nextEclipse.type} Eclipse`,
-    subtitle: `${nextEclipse.daysAway} days away · ${nextEclipse.region}`,
-    funFact:  nextEclipse.isSolar
-      ? `Totality lasts ${nextEclipse.duration}. The corona becomes visible only during total solar eclipses. Always use ISO 12312-2 certified eclipse glasses.`
-      : `The Moon turns deep red during totality — Earth's atmosphere scatters blue light and bends red light onto the lunar surface. Safe to view naked-eye.`,
-    searchQuery: nextEclipse.type + " eclipse NASA",
-    needsTelescope: nextEclipse.isSolar, isDay: nextEclipse.isSolar,
   };
-  const nextConj = data.conjunctions.find((c) => c.daysAway >= 0 && c.daysAway <= 14);
-  if (nextConj) return {
-    title:    nextConj.name,
-    subtitle: nextConj.daysAway === 0 ? "Happening tonight!" : `In ${nextConj.daysAway} days`,
-    funFact:  nextConj.tip,
-    searchQuery: nextConj.objects + " conjunction night sky",
-    needsTelescope: true, isDay: false,
-  };
-  if (data.moon.illumination >= 95) return {
-    title:    "Full Moon",
-    subtitle: `${data.moon.illumination}% illuminated tonight`,
-    funFact:  "A full moon is up to 14× brighter than a half moon — the opposition surge caused by the absence of shadows when sunlight hits the lunar surface head-on.",
-    searchQuery: "full moon NASA photography",
-    needsTelescope: false, isDay: false,
-  };
+
   if (data.kp >= 5) return {
     title:          "Geomagnetic Storm",
     subtitle:       `Kp ${data.kp} — aurora possible tonight`,
-    funFact:        "Green aurora forms when solar particles excite oxygen at ~100 km altitude. Red aurora comes from oxygen above 200 km. Purple and blue hues come from nitrogen — look toward the magnetic pole after midnight.",
+    funFact:        "Green aurora forms when solar particles excite oxygen at ~100 km altitude. Red aurora comes from oxygen above 200 km. Purple and blue hues come from nitrogen.",
     searchQuery:    "aurora borealis NASA",
     needsTelescope: false,
     isDay:          false,
-    title:    "Geomagnetic Storm",
-    subtitle: `Kp ${data.kp} — aurora possible tonight`,
-    funFact:  "Green aurora forms when solar particles excite oxygen at ~100 km altitude. Red aurora comes from oxygen above 200 km. Purple and blue hues come from nitrogen.",
-    searchQuery: "aurora borealis NASA",
-    needsTelescope: false, isDay: false,
   };
+
   const nextShower = data.showers[0];
   return {
-    title:    nextShower.name + " Meteor Shower",
-    subtitle: `Next shower — in ${nextShower.daysUntil} days`,
-    funFact:  `The ${nextShower.name} are debris trails from ${nextShower.parent}. As Earth crosses the trail each year, particles burn at ~80 km altitude — up to ${nextShower.rate} meteors/hour.`,
-    searchQuery: nextShower.name + " meteor shower space",
-    needsTelescope: false, isDay: false,
+    title:          nextShower.name + " Meteor Shower",
+    subtitle:       `Next shower — in ${nextShower.daysUntil} days`,
+    funFact:        `The ${nextShower.name} are debris trails from ${nextShower.parent}. As Earth crosses the trail each year, particles burn at ~80 km altitude — up to ${nextShower.rate} meteors/hour.`,
+    searchQuery:    nextShower.name + " meteor shower space",
+    needsTelescope: false,
+    isDay:          false,
   };
 }
 
@@ -313,7 +285,7 @@ function HeroPanel({ hero, image, cloudWarning, closestEvent, timeLeft }) {
         <h2 className="cw-hero-title">{hero.title}</h2>
         <div className="cw-hero-subtitle">{hero.subtitle}</div>
 
-                {closestEvent && timeLeft && (
+        {closestEvent && timeLeft && (
           <div style={{ marginTop: 12 }}>
             <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "rgba(168,212,245,0.45)", marginBottom: 8 }}>
               Live countdown
@@ -457,7 +429,7 @@ export default function CelestialWeather({ hourlyWeather = null }) {
 
   const cloudWarning = getViewingWarning(hourlyWeather);
 
-    useEffect(() => {
+  useEffect(() => {
     if (!closestEvent) return;
 
     // Set the countdown immediately
@@ -509,22 +481,13 @@ export default function CelestialWeather({ hourlyWeather = null }) {
 
       const heroEvent = pickHeroEvent(assembled);
       setHero(heroEvent);
-      onHeroEvent?.(heroEvent);
       fetchNasaImage(heroEvent.searchQuery).then(setHeroImage);
     } catch (err) {
       setError("Could not load celestial data. " + err.message);
     } finally {
       setLoading(false);
     }
-  }, [onHeroEvent]);
-
-  /* Auto-load when GPS arrives */
-  useEffect(() => {
-    if (autoLocation && !autoLoaded) {
-      setAutoLoaded(true);
-      load(autoLocation.lat, autoLocation.lng, "My Location");
-    }
-  }, [autoLocation, autoLoaded, load]);
+  }, []);
 
   async function handleLocate() {
     setLoading(true);
